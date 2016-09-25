@@ -1,2 +1,2 @@
 # glavanize-projects
-Various Projects while studying at Galvanize
+Here you will find various projects I worked on while studying at Galvanize.
