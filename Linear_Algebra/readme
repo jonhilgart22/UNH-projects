@@ -1,0 +1,5 @@
+Here you will find the final project from the Linear Algebra course.
+
+The final project compared the differences between SVD and PCA for numeric Lending Club data. 
+In addition, the first eigenvector from PCA was used to classify people as 1=will pay back loan or 2=will not pay back loan.
+The final paper, and iPython notebook, contains more information.
