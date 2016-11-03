@@ -4,4 +4,3 @@ The final project compared the differences between SVD and PCA for numeric Lendi
 In addition, the first eigenvector from PCA was used to classify people as 1=will pay back loan or 2=will not pay back loan.
 The final paper, and iPython notebook, contain more information.
 
-
