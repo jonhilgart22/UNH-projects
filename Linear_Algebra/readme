@@ -7,7 +7,7 @@ The final paper, and iPython notebook, contain more information.
 PCA used on Lending Club data. The magnitude of each eigenvalue is displayed in a elbow plot. In addition, the most important
 features from each eigenvector are plotted (Take the index of the largest element of each eigenvector, and scale this by
 the corresponding eigenvalue).
-https://cloud.githubusercontent.com/assets/8621935/19952267/409cf320-a121-11e6-9083-34e0911b7632.png
+![image](https://cloud.githubusercontent.com/assets/8621935/19952267/409cf320-a121-11e6-9083-34e0911b7632.png)
 
 Projection data along first eigenvalue. This use Euclidean distance to determine the classification of each person.
 https://cloud.githubusercontent.com/assets/8621935/19952321/99199f08-a121-11e6-9ea5-5c967ecf9624.png
