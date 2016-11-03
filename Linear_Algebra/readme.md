@@ -10,7 +10,7 @@ the corresponding eigenvalue).
 ![image](https://cloud.githubusercontent.com/assets/8621935/19952267/409cf320-a121-11e6-9083-34e0911b7632.png)
 
 Projection data along first eigenvalue. This use Euclidean distance to determine the classification of each person.
-https://cloud.githubusercontent.com/assets/8621935/19952321/99199f08-a121-11e6-9ea5-5c967ecf9624.png
+![image](https://cloud.githubusercontent.com/assets/8621935/19952321/99199f08-a121-11e6-9ea5-5c967ecf9624.png)
 
 Accuracy rates for classification on different traning set sizes.
-https://cloud.githubusercontent.com/assets/8621935/19952324/a26c2350-a121-11e6-9589-858c250503fd.png
+![image](https://cloud.githubusercontent.com/assets/8621935/19952324/a26c2350-a121-11e6-9589-858c250503fd.png)
