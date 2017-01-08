@@ -13,4 +13,4 @@ Index
 
 - 3) Natural_Language_Processing: contains a mad libs style choose your own adventure story (Information Retreival with TF-IDF / Jaccard Similarity, word2vec, Named Entity Recognition, Part of Speech tagging, Spacey, NLTK).
 
-- 4) Machine_Learning_I: contains various machine learning models built off of Ultimatum Game data ( a variant of Prisoner's Dilemma) with the goal of maximizing your payoff (Tree Boosting, Random Forests, Regularized Regression, Clustering, Stacking/Ensemble methods, Sklearn).
+- 4) Machine_Learning_I: contains various machine learning models built off of Ultimatum Game data ( a variant of Prisoner's Dilemma) with the goal of maximizing your payoff (Tree Boosting, Random Forests, Regularized Regression, KNN Clustering, Stacking/Ensemble methods, Sklearn).
