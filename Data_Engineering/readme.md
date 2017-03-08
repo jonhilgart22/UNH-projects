@@ -1,3 +1,9 @@
-# Imagine waking up in the morning and wondering how packed your subway ride will be.
-###  Should you take the bart, muni, or a lyft? This project incorporated live bart and weather data, alongside historical bart ridership and weather data, to predict the percent capacity of each bart station daily. 
+## This project creates daily predictions of bart capacity for each station.
+
+#### The notebook daily bart ridership predictions gives an overview of the project including the architecture.
+
+#### The airflow scripts folder contains the airflow scripts to automate the batch jobs for data ingestions, data normalization, and bart ridership predictions.
+
+#### The spark submit scripts conatins the code used to normalize the bart and weather data as well as the LMlib model used to create the daily rider predictions.
+
 
