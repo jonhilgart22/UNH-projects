@@ -1,0 +1,30 @@
+Below are the dependencies for this system.
+
+1) Data Ingestion
+- Airflow
+- lxml
+- StringIO
+- pytz
+- datetime
+- yaml
+- argparse
+- boto3
+- numpy
+- requests
+- json
+- pip
+- pandas
+
+2) Spark Submit *This assumes you are running on an EMR cluster that comes install with Spark
+- pytz
+- datetime
+- time
+- other built-in imports specified in the code
+- Airflow (If you want to run Airflow on the EMR cluster)
+- pandas
+
+
+3)Mongodb
+- pymongo
+- Airflow
+- boto (to pull in data from s3) 

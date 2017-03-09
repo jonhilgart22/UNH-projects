@@ -342,6 +342,7 @@ def make_predictions_today(input_df,historic_bart_df,trained_model):
     final_historic_df = final_historic_live_grouped.loc[:,
         ('station', 'daily_capacity', 'total-predicted-exits',
          'percent_capacity')]
+
     return final_historic_df
 
 
@@ -397,6 +398,9 @@ if __name__ =='__main__':
     final_df_predicted_capacity = \
         make_predictions_today(final_bart_weather_df, ml_df,
                            trained_gb_model)
+    total_daily_capacity = sum(final_df_predicted_capacity['daily_capacity'])
+    total_predicted_daily_riders = sum(
+        final_historic_df['total-predicted-exits'])
     # save to html
     with open("predicted_capacity", "wr") as fp:
         fp.write("""<h1>Bart Station Predictions based upon the current weather
@@ -405,9 +409,9 @@ if __name__ =='__main__':
             sf_month_today, sf_day_today, sf_year_today,
         datetime.datetime.now(SF_time).hour,
         datetime.datetime.now(SF_time).minute))
-        fp.write("""<h1>For a full description of how this system works,
+        fp.write("""<h2>For a full description of how this system works,
                  check out my github https://github.com/jonhilgart22/galvanize-projects/blob/master/Data_Engineering/Daily_Bart_Ridership_Predictions.ipynb
-                 </h1>""")
+                 </h2>""")
         fp.write("""<p> Below is a daily live prediction of the number of people
                  that will exit a given bart station. This data utilizes one
                  year of hourly exits per station access at
@@ -423,6 +427,10 @@ if __name__ =='__main__':
                  from the total number of trains that arrived at each station
                  times 150 people per train. Alongside this, the weather
                  pulled from midnight is used as the weather predition.</p>""")
+        fp.write("""<h3>Today, it is predicted that {} people will ride BART.
+                 In addition, today BART has capacity for {} people</h3>""".format(
+                     total_predicted_daily_riders, total_daily_capacity
+                 ))
         fp.write("""<p> Below the predictions, you can see an architecture
                  of the system.</p>""")
         fp.write(final_df_predicted_capacity.to_html())
