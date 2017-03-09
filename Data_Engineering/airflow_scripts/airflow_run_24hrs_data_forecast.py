@@ -7,7 +7,7 @@ __author__ = "Jonathan Hilgart"
 default_args = {
         'owner': 'airflow',
         'depends_on_past': False,
-        'start_date': datetime(2016, 1, 1),
+        'start_date': datetime(2017, 3, 1),
         'email': ['jonathan.hilgart@gmail.com'],
         'email_on_failure': True,
         'email_on_retry': False,
