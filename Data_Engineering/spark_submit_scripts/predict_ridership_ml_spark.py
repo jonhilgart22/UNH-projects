@@ -411,14 +411,14 @@ if __name__ =='__main__':
         datetime.datetime.now(SF_time).minute))
         fp.write("""<h2>For a full description of how this system works,
                  check out my  <a href =https://github.com/jonhilgart22/galvanize-projects/blob/master/Data_Engineering/Daily_Bart_Ridership_Predictions.ipynb
-                 >github </a></h2>""")
+                 >github. </a></h2>""")
         fp.write("""<p> Below is a daily live prediction of the number of people
                  that will exit a given bart station. This data utilizes one
                  year of hourly exits per station access at
-                 <a href =http://www.bart.gov/about/reports/ridership>bart data</a>. Alongside these
+                 <a href =http://www.bart.gov/about/reports/ridership>BART data</a>. Alongside these
                   ridership number, one year of historical weather
                   for San Francisco was used accessed at
-                  <a href=https://www.wunderground.com/history/>weather data</a></p>""")
+                  <a href=https://www.wunderground.com/history/>weather data.</a></p>""")
         fp.write("""<p> This historic data was fed into a
                  MLlib gradient boosted tree model (300 trees) to predict
                  ridership
@@ -428,7 +428,7 @@ if __name__ =='__main__':
                  times 150 people per train. Alongside this, the weather
                  pulled from midnight is used as the weather prediction.</p>""")
         fp.write("""<h3>Today, it is predicted that {:,} people will ride BART.
-                 In addition, today BART has capacity for {:,} people</h3>""".format(
+                 In addition, today BART has capacity for {:,} people.</h3>""".format(
                      total_predicted_daily_riders, total_daily_capacity
                  ))
         fp.write("""<p> Below the predictions, you can see an architecture
