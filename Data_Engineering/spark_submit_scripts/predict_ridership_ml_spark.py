@@ -14,11 +14,7 @@ from pyspark.ml.evaluation import RegressionEvaluator
 __author__ = 'Jonathan Hilgart'
 
 
-# bring in the current bart and weather data to make a prediction against
 # convert string into datetime format
-
-
-
 def change_time_format(time):
     """Take in a month, day, year format and return year, month,
     day format as DateType"""
@@ -28,11 +24,13 @@ def change_time_format(time):
     date_time = datetime.datetime(int(year), int(month), int(day))
     return date_time
 
+
 def live_bart_station_map(col):
     """Change the mapping for the livr bart predictions to match the
     index numbers used in the ml model."""
     live_bart_station_mapping = \
-        {"North Concord/Martinez": 0, 'Powell St.': 1, 'Civic Center/UN Plaza': 2,
+        {"North Concord/Martinez": 0, 'Powell St.': 1,
+         'Civic Center/UN Plaza': 2,
         '16th St. Mission': 3, 'Union City': 4, 'Downtown Berkeley': 5,
         'El Cerrito Plaza': 6, 'Castro Valley': 7, 'Glen Park (SF)': 8,
         'Embarcadero': 9, 'San Leandro': 10, 'Rockridge': 11, 'South Hayward': 12,
@@ -50,7 +48,7 @@ def live_bart_station_map(col):
     try:
         return live_bart_station_mapping[col]
     except:
-        return -1 # don't have this station but a null will break the ML model
+        return -1  # don't have this station but a null will break the ML model
 
 def bart_station_map(col):
     """Change the station names from BART historical data into an index"""
@@ -62,9 +60,7 @@ def bart_station_map(col):
     "WDUB": 24, "19TH": 25, "SSAN": 26, "SBRN": 27, "NBRK": 28, "PHIL": 29,
     "MONT": 30, "COLM": 31, "DUBL": 32, "WOAK": 33, "MLBR": 34, "ORIN": 35,
     "MCAR": 36, "HAYW": 37, "LAFY": 38, "COLS": 39, "RICH": 40, "BAYF": 41,
-    "BALB": 42,"24TH": 43, "12TH":44 }
-
-
+    "BALB": 42, "24TH": 43, "12TH": 44 }
     try:
         return historic_station_map[col]
     except:
@@ -123,7 +119,8 @@ def read_in_data():
     # set columns as integers
     ml_df = ml_df.withColumn("temp-avg", ml_df['temp-avg'].cast(IntegerType()))
     ml_df = ml_df.withColumn("temp-low", ml_df['temp-low'].cast(IntegerType()))
-    ml_df = ml_df.withColumn("temp-high", ml_df['temp-high'].cast(IntegerType()))
+    ml_df = ml_df.withColumn("temp-high",
+                             ml_df['temp-high'].cast(IntegerType()))
     ml_df = ml_df.withColumn("humidity-avg",
                              ml_df['humidity-avg'].cast(IntegerType()))
     ml_df = ml_df.withColumn("seapress-avg",
@@ -135,42 +132,43 @@ def read_in_data():
     return ml_df
 
 
-def train_gb_model(input_df, number_iterations=300):
+def train_gb_model(input_df, number_iterations=150):
     """  Train a gradient boost model from the bart and weather data.
     Return the trained model, and the rmse from the train test split"""
     ml_df.cache()
-    ### train test split
+    # train test split
     trainingData, testData = ml_df.randomSplit([0.7, 0.3])
     train_rows = trainingData.count()
     test_rows = testData.count()
     trainingData.cache()
     testData.cache()
     gb_assembler = VectorAssembler(inputCols=['temp-avg', 'temp-low',
-    'temp-high', 'seapress-avg', 'humidity-avg', 'wind-avg',
-    'precip-inches', 'month_n', 'day_of_month', 'indexed_stations_udf'],
+        'temp-high', 'seapress-avg', 'humidity-avg', 'wind-avg',
+        'precip-inches', 'month_n', 'day_of_month', 'indexed_stations_udf'],
                                    outputCol="features")
     training = gb_assembler.transform(trainingData).select(
-        col("features"),col("total_exits").alias("label-exits"))
-    ## cache the model to test hyperparameters
+        col("features"), col("total_exits").alias("label-exits"))
+    # cache the model to test hyperparameters
     training.cache()
     # This takes ~15 minutes to run
     gb_model = GBTRegressor(labelCol="label-exits",
                             featuresCol="features",
-                            maxIter=number_iterations,maxDepth=3,maxBins=50)
+                            maxIter=number_iterations, maxDepth=3, maxBins=50)
     gb_model_trained = gb_model.fit(training)
     testing = gb_assembler.transform(testData).select(
         col("features"), col("total_exits").alias("label-exits-true"))
-    ## cache the model to test hyperparameters
+    # cache the model to test hyperparameters
     testing.cache()
     prediction = gb_model_trained.transform(testing)
     predicted = prediction.select(
         col("features"),"prediction","label-exits-true")
     evaluator = RegressionEvaluator(
-    labelCol="label-exits-true", predictionCol="prediction", metricName="rmse")
+        labelCol = "label-exits-true", predictionCol="prediction",
+        metricName="rmse")
     rmse = evaluator.evaluate(predicted)
     print("Root Mean Squared Error (RMSE) on test data = %g" % rmse)
 
-    return gb_model_trained , rmse
+    return gb_model_trained, rmse
 
 
 def live_bart_weather_data(sf_year_yes,sf_month_yes,sf_day_yes):
@@ -184,18 +182,16 @@ def live_bart_weather_data(sf_year_yes,sf_month_yes,sf_day_yes):
         "s3a://normalized-data-weather-bart/bart_physical_0_{}/{}/{}/*".format(
         sf_year_yes, sf_month_yes, sf_day_yes))
     # weather data from yesterday (would fix to today if given enough time)
-    #wind_table = spark.read.parquet("s3a://normalized-data-weather-bart/wind_df2017/03/06/*")
     wind_table = spark.read.parquet(
         "s3a://normalized-data-weather-bart/wind_df{}/{}/{}/*".format(
         sf_year_yes, sf_month_yes, sf_day_yes))
-    #main_temp_table = spark.read.parquet("s3a://normalized-data-weather-bart/main-temp2017/03/06/*")
     main_temp_table = spark.read.parquet(
         "s3a://normalized-data-weather-bart/main-temp{}/{}/{}/*".format(
         sf_year_yes, sf_month_yes, sf_day_yes))
     weather_description_table = spark.read.parquet(
         "s3a://normalized-data-weather-bart/weather-description{}/{}/{}/*".format(
         sf_year_yes, sf_month_yes, sf_day_yes))
-    ## alias bart columns
+    # alias bart columns
     bart_arrival_renamed = bart_arrival.select(
         col('origin_station_0').alias('origin_station_arrival'),
         col("sf_time_0").alias("sf_time_arrival"),
@@ -204,7 +200,7 @@ def live_bart_weather_data(sf_year_yes,sf_month_yes,sf_day_yes):
         col("hour_0").alias("hour_arrival"),
         col("minutes_til_arrival_0").alias(
                             "minutes_til_arrival_bart_arrival"))
-    #join bart tables together
+    # join bart tables together
     joined_bart_arrival_physical_df = bart_arrival_renamed.join(bart_physical,
         on = [bart_physical['origin_station_0'] ==
         bart_arrival_renamed['origin_station_arrival'],
@@ -214,12 +210,11 @@ def live_bart_weather_data(sf_year_yes,sf_month_yes,sf_day_yes):
         bart_arrival_renamed['direction_arrival'],
         bart_physical['date_0'] ==
         bart_arrival_renamed['date_arrival']])
-    #select columns I want
+    # select columns I want
     final_joined_bart_df = joined_bart_arrival_physical_df.select(
         "origin_station_0", "sf_time_0", "date_0", "direction_0",
         "destination_0", "hour_0", "color_0", "bike_flag_0",
         "train_size_0", "capacity_0", "minutes_til_arrival_bart_arrival")
-    #
     ## convert the string date to datetime format
     final_joined_bart_df_dt = final_joined_bart_df.withColumn(
         'date_0', change_time(col('date_0')))
@@ -239,18 +234,15 @@ def live_bart_weather_data(sf_year_yes,sf_month_yes,sf_day_yes):
             GROUP BY origin_station_0,date_0,direction_0, month_n, day_of_month
             ORDER BY total_capacity DESC""")
     # bring in weather data to ultimately join with bart data
-    # and feed into our ML model
+    # and create a ML dataframe to feed into GBoost model
     wind_table_alias = wind_table.select(col("hour").alias("hour_wind"),
                                          col("date").alias("date_wind"),
                                          "speed", "deg")
     wind_temp_table = wind_table_alias .join(main_temp_table,
         on = [wind_table_alias['hour_wind'] == main_temp_table['hour'],
         wind_table_alias['date_wind'] == main_temp_table['date']])
-    wind_temp_table_final = wind_temp_table.select("hour",
-                                                   "date", 'humidity',
-                                                   "speed", "deg",
-                                                   "pressure", "temp",
-                                                   "temp_max", "temp_min")
+    wind_temp_table_final = wind_temp_table.select("hour", "date", 'humidity',
+                    "speed", "deg", "pressure", "temp", "temp_max", "temp_min")
     weather_des_final = weather_description_table.select(
         col("col").alias('weather_des'), "hour", "date")
     weather_des_final.registerTempTable("weather_des_final")
@@ -259,27 +251,22 @@ def live_bart_weather_data(sf_year_yes,sf_month_yes,sf_day_yes):
          CASE WHEN weather_des = 'Rain' THEN 1.0
              WHEN weather_des = 'Mist' THEN .1
              ELSE 0.0 end as weather_precip
-           FROM  weather_des_final
-            """)
+           FROM  weather_des_final""")
     weather_des_ints_final = weather_des_ints.select("hour_des",
-                                                      "date_des",
-                                                      "weather_precip")
-    # join weather des with the other two weather tables
-
+                                         "date_des", "weather_precip")
+    # join weather des with the other two weather table
     combo_df = wind_temp_table_final.join(weather_des_ints_final,
-                                        on = [wind_temp_table_final['date']
-                                        == weather_des_ints_final['date_des'],
-                                        wind_temp_table_final['hour']
-                                        == weather_des_ints_final['hour_des']])
+        on = [wind_temp_table_final['date'] ==
+        weather_des_ints_final['date_des'], wind_temp_table_final['hour'] ==
+        weather_des_ints_final['hour_des']])
     #select the columns you want
     final_df = combo_df.select("hour",
                                "date", "speed", "deg", "pressure", "temp",
                                "temp_max", "temp_min", "weather_precip")
-    #change date string to date format
     # convert the date string into the date format for spark
     combo_df = combo_df.withColumn('date', change_time(col('date')))
-    ## finally, select all of the columns
-    ## drop duplicates to ensure we only have only weather forecast per hour
+    # finally, select all of the columns
+    # drop duplicates to ensure we only have only weather forecast per hour
     final_weather_df = combo_df.select(dayofmonth(col('date')).alias(
         "day_of_month_weather"), month(col("date")).alias("month_n_weather"),
         "hour", "date", "speed", "deg", "pressure", "temp", "temp_max",
@@ -293,7 +280,7 @@ def live_bart_weather_data(sf_year_yes,sf_month_yes,sf_day_yes):
         "total_capacity", "total_number_train_cars", "direction_0",
         "date_0", "origin_station_0", "weather_precip", "speed", "deg",
         "pressure", "temp", "temp_max", "temp_min", "humidity")
-    ## index our bart stations to match the order in our ML algorithm
+    # index our bart stations to match the order in our ML algorithm
     final_bart_weather_table_stat = final_bart_weather_table.withColumn(
         "indexed_stations", bart_data_reformat_columns(col("origin_station_0")))
     # 150 people per train is a more realistic assumption of
@@ -355,25 +342,19 @@ def make_predictions_today(input_df,historic_bart_df,trained_model):
     final_historic_df = final_historic_live_grouped.loc[:,
         ('station', 'daily_capacity', 'total-predicted-exits',
          'percent_capacity')]
-
-
     return final_historic_df
-
-
 
 
 if __name__ =='__main__':
     # get the current day, and yesterday information to make predictions off
     # of
-    ## use yseterday's capacity per bart station for the prediction
+    # use yseterday's capacity per bart station for the prediction
     # of today's capacity
-    #(This assumes all days are the same for number of trains per station)
-
+    # (This assumes all days are the same for number of trains per station)
     # # when running spark-submit, need to create the spark context
     sc = SparkContext()
     spark = SparkSession(sc)
     sqlContext = SQLContext(sc)
-
     # get the time for saving and uploading files
     SF_time = pytz.timezone('US/Pacific')
     yesterday = datetime.datetime.now(SF_time)-datetime.timedelta(1)
@@ -387,47 +368,46 @@ if __name__ =='__main__':
         sf_month_yesterday = '0'+str(sf_month_yesterday)
     if len(str(sf_day_yesterday)) < 2:
         sf_day_yesterday = '0'+str(sf_day_yesterday)
-
     # compute today's time
     sf_year_today = today.year
     sf_month_today = today.month
     sf_day_today = today.day   # compute yesterday's files
-
     if len(str(sf_month_today)) < 2:
         sf_month_today = '0'+str(sf_month_today)
     if len(str(sf_day_today)) < 2:
         sf_day_today= '0'+str(sf_day_today)
-
-    #to group against for the bart and weather data
+    # to group against for the bart and weather data
     KeyFileName_today = "{}-{}-{}".format(
         sf_year_today, sf_month_today, sf_day_today)
     KeyFileName_yesterday = "{}-{}-{}".format(
         sf_year_yesterday, sf_month_yesterday, sf_day_yesterday)
-
     # define the UDFs
     bart_data_reformat_columns = udf(live_bart_station_map, IntegerType())
     bart_indexer_historic = udf(bart_station_map, IntegerType())
     change_time = udf(change_time_format, DateType())
-    ## read in historical data
+    # read in historical data
     ml_df = read_in_data()
-    ## train the gboost model
+    # train the gboost model
     trained_gb_model, rmse_gb = train_gb_model(ml_df)
-    ## combine the live data from bart and the weather
+    # combine the live data from bart and the weather
     final_bart_weather_df = \
     live_bart_weather_data(sf_year_yesterday, sf_month_yesterday,
                            sf_day_yesterday)
-    #create predictions from the live data
+    # create predictions from the live data
     final_df_predicted_capacity = \
-    make_predictions_today(final_bart_weather_df, ml_df,
+        make_predictions_today(final_bart_weather_df, ml_df,
                            trained_gb_model)
     # save to html
     with open("predicted_capacity", "wr") as fp:
-        fp.write("<h1>Bart Station Predictions based upon the current weather
-                 </h1>")
+        fp.write("""<h1>Bart Station Predictions based upon the current weather
+                 </h1>""")
         fp.write("<p>Updated on {}/{}/{} at SF time= {}:{}</p>".format(
-            sf_month_today,sf_day_today,sf_year_today,
+            sf_month_today, sf_day_today, sf_year_today,
         datetime.datetime.now(SF_time).hour,
         datetime.datetime.now(SF_time).minute))
+        fp.write("""<h1>For a full description of how this system works,
+                 check out my github https://github.com/jonhilgart22/galvanize-projects/blob/master/Data_Engineering/Daily_Bart_Ridership_Predictions.ipynb
+                 </h1>""")
         fp.write("""<p> Below is a daily live prediction of the number of people
                  that will exit a given bart station. This data utilizes one
                  year of hourly exits per station access at
