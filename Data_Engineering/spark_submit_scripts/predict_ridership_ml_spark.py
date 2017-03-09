@@ -1,6 +1,6 @@
 from pyspark.sql.functions import *
 from pyspark.sql.types import *
-from pyspark.sql.functions import  explode, from_unixtime, from_json
+from pyspark.sql.functions import explode, from_unixtime, from_json
 from pyspark.sql import SQLContext, column, SparkSession
 from pyspark.sql import DataFrame
 from pyspark.sql.types import DateType
@@ -396,29 +396,29 @@ if __name__ =='__main__':
                            sf_day_yesterday)
     # create predictions from the live data
     final_df_predicted_capacity = \
-        make_predictions_today(final_bart_weather_df, ml_df,
-                           trained_gb_model)
-    total_daily_capacity = sum(final_df_predicted_capacity['daily_capacity'])
-    total_predicted_daily_riders = sum(
-        final_historic_df['total-predicted-exits'])
+        make_predictions_today(final_bart_weather_df, ml_df, trained_gb_model)
+    # get capacity and rider information
+    total_daily_capacity = final_df_predicted_capacity ['daily_capacity'].sum()
+    total_predicted_daily_riders = \
+        final_df_predicted_capacity['total-predicted-exits'].sum()
     # save to html
     with open("predicted_capacity", "wr") as fp:
-        fp.write("""<h1>Bart Station Predictions based upon the current weather
-                 </h1>""")
+        fp.write("""<h1><em>Bart Station Predictions Based Upon Current Weather
+                 </em></h1>""")
         fp.write("<p>Updated on {}/{}/{} at SF time= {}:{}</p>".format(
             sf_month_today, sf_day_today, sf_year_today,
         datetime.datetime.now(SF_time).hour,
         datetime.datetime.now(SF_time).minute))
         fp.write("""<h2>For a full description of how this system works,
-                 check out my github https://github.com/jonhilgart22/galvanize-projects/blob/master/Data_Engineering/Daily_Bart_Ridership_Predictions.ipynb
-                 </h2>""")
+                 check out my  <a href =https://github.com/jonhilgart22/galvanize-projects/blob/master/Data_Engineering/Daily_Bart_Ridership_Predictions.ipynb
+                 >github </a></h2>""")
         fp.write("""<p> Below is a daily live prediction of the number of people
                  that will exit a given bart station. This data utilizes one
                  year of hourly exits per station access at
-                 http://www.bart.gov/about/reports/ridership. Alongside these
+                 <a href =http://www.bart.gov/about/reports/ridership>bart data</a>. Alongside these
                   ridership number, one year of historical weather
                   for San Francisco was used accessed at
-                  https://www.wunderground.com/history/.</p>""")
+                  <a href=https://www.wunderground.com/history/>weather data</a></p>""")
         fp.write("""<p> This historic data was fed into a
                  MLlib gradient boosted tree model (300 trees) to predict
                  ridership
@@ -426,71 +426,14 @@ if __name__ =='__main__':
         fp.write("""<p>This model is updated daily. The total capacity is taken
                  from the total number of trains that arrived at each station
                  times 150 people per train. Alongside this, the weather
-                 pulled from midnight is used as the weather predition.</p>""")
-        fp.write("""<h3>Today, it is predicted that {} people will ride BART.
-                 In addition, today BART has capacity for {} people</h3>""".format(
+                 pulled from midnight is used as the weather prediction.</p>""")
+        fp.write("""<h3>Today, it is predicted that {:,} people will ride BART.
+                 In addition, today BART has capacity for {:,} people</h3>""".format(
                      total_predicted_daily_riders, total_daily_capacity
                  ))
         fp.write("""<p> Below the predictions, you can see an architecture
                  of the system.</p>""")
         fp.write(final_df_predicted_capacity.to_html())
-        fp.write("""<div class="mxgraph" style="max-width:100%;border:1px solid
-                 transparent;" data-mxgraph="{&quot;highlight&quot;:
-                 &quot;#0000ff&quot;,&quot;nav&quot;:true,&quot;resize&quot;:
-                 true,&quot;toolbar&quot;:&quot;zoom layers lightbox&quot;,
-                 &quot;edit&quot;:&quot;_blank&quot;,&quot;xml&quot;:&quot;&lt;
-                 mxfile userAgent=\&quot;Mozilla/5.0 (Macintosh; Intel Mac OS X
-                 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko)
-                 Chrome/56.0.2924.87 Safari/537.36\&quot;
-                 version=\&quot;6.2.7\&quot; editor=\&quot;www.draw.io\&quot;
-                 type=\&quot;google\&quot;&gt;&lt;diagram name=\&quot;Page-1\
-                 &quot;&gt;7VzZbts4FP0aA+1DDC3U9pit7WDaomgGaPs0oCXaFiKLHopOnHz9k
-                 BK1UZStOJSztkAsURQp3XvuuQtpT+zz1fYzgevlNxyhZGIZ0XZiX0wsyzQDg33
-                 wlruixTNA0bAgcSQ61Q1X8T0SjeK+xSaOUNbqSDFOaLxuN4Y4TVFIW22QEHzb7
-                 jbHSXvWNVygTsNVCJNu6684osui1XeMuv0LihfLcmbTEFdWsOwsGrIljPBto
-                 8m+nNjnBGNaHK225yjhwivlUtz3qedq9WAEpXTIDc7MQ7Mo8EJoRtD05idih
-                 BuYbMTLnkFCWcvX+Aaxj1NCYnaRHV1ACnPhEfYX3SByx9+HQhrjlB192KwjS
-                 FHUuMjVZ6zidENR9lG8P70rhXq7jCm6WsOQn98y4EzssyVdJezMZIfiuRCha
-                 Nv7smYlQoY9hFeI5hOLG0rY3VVqKc5vax2armhbNvRXtkEBm0U1ci1ZdiCEO
-                 1DQVkfQQsK/EAMJIrWEX4Akg6eUJOhIsiORjBJ8Xdmq1ZYHs8E177faLjhdT
-                 ecJvg2XDPVTmKa4APS/vCNM4kXKOiZoTkeRo98Vo6OQYnWbVjE6TyRGIq6xl
-                 hOTSUCLYC3jGUnWVUjWTfi7z9jBgh9cnvMef6WMP9OQs8AJ92kwu85yr5Eyj
-                 xKVN7H5q/vKtii+kZuqPjcxH4SdwRVngnSW8Q8YE66hXYOytta4EhqYdmgbA
-                 gRl8T2c5R24Itc4TmkuSeds4lzwWTcUZ4U/V0CBqzxmbvZUNFPMnzRjTBani
-                 3/4yQWzdi0A8Z0WPoDTJbBAARB7DHz4vfhQqZXsU9MjbtVj78xbwRnM2MUzl
-                 SvSoD3XktQHFA7IVujPBGMoMNhv4N9wusAXZwpDPNSs8yir4I244o23acwua
-                 LO9YyjM2TyWOZt2Lxw2pfyvuM8LuQrsPOSb5SlHrarNDiSYH/PYME64BNYER
-                 XFYRIcsV0IkW8Zr3p5HkFU4PpApLD70aUg3eYQfiTlCyJVG7w4e1ubD/kAk5
-                 PpkKcMmFyDDRrhJWGTLjusQV0w6Jj+tCQ5RlvXQ0zxOknOcsLSGz2HPHf6fj
-                 5dP1rji5v/GQbCn4DOVP6oSyUchODRhGMzAbBb4FpwpcsAO+Zyu4H1OQH/HK
-                 eOJTBepfYoJWuLszTJZFZWWmZUKCKMxmYSDbopa56ZRlf2jEGZ0UhYCUi59l
-                 qCCvM8djzw/4CKkXYsb755BxmqrPMRoGaskV1WmJdnBlT2p8v+v8LrHHmQ6F
-                 IzHpAKTBCWYEd+qh+X0StcG7XjMBKArXk8Vj42B2/54upETccnOMMWDJPuqO
-                 MW2uthXQX8U1zLAtwjYp5ismNDuy1BDi3/h+jbs75/eqn9xbAkLgYIHVYnTG
-                 HZqdh3MlzijmOSRsag7L/GG5FFoM7otvQ/BK/bB3I2rM+09ujdSpq/H8kamq
-                 n7aK0w9FYmGmrshRVep6vGemxYd6ym1qCoy6kmXRq+Cu/uLOapirZ5ajixH7
-                 4nk2CiD66uCW/t55niSHRCWVWWRBkEU4cBrD9ICyQZUa5Mqv6wjSAPzeTBzQ
-                 OTYKETAR0NW1FAanfKVdHYWJjDLmKpaokfbmP4WYufHf/jx1BFnPxCJ2WMiI
-                 noUw6Oos+wuiY89AgsHQtGrbwmLQrJAdEfu1dXCHoMo2whKGEBv2k+pEr2Y4
-                 QcHXIPo2uboOpLyipcTN9X664xTVQDKgQxpoEICnYFyIFRvfRg2BiwTDsWG2
-                 cHGgThQ1y0OgEHJm5KiTN+f2obnBlbx13IH0ais3v0A6Uwsr0cORYjtDXuDI
-                 wCmG5iwoIxcs6bLbz/Z3/Nkk3Em6K1m7KzWaq5jyOtKtiI9skYK6TqSGxCKD
-                 KbhKbCChrmZU8Pwe8iYyYrc/a75mp/+eRxRqwtgTQNVw+aZELVn6iJqGScj2
-                 p0q3NJG1A2M2J7XRAlDlls16PHzfZSyi+DNHkN/x89Q/KgWtR+KnxolXotKT
-                 G1UUhYUX0rM9yKhUE69cwdT7szD0pkrNi9pKeAWhfs3vnnJlrAAVFVcX4FpH
-                 VXcLjpUNf1R08UGr5gWkLxPEdfo8z59FaJ3xhmTcaz9jPNdLBDl20b6q0T7O
-                 eVDxVFGi14+vlV+cSUI2eV5k1/A0fhFtZ9KSyTrSaEs8K0mmZwwehmXS4YkQ
-                 oUpPBMyeZElK+UK1+GJtAuaifQBSfSYqVFJnC3vpNxw/I6oRyCqWwX9fIZxv
-                 g9qJb7uVm8tafgJsV1z0lrOHrbXUZTDlmgLF3yZ6GzdQJBobYDqGNUySZWO6
-                 mtAqmqZP4qbGLACus/KNRmhoj7RA6Fe2QKpgAvKt9Fec5ZncmQ7GmqQjhGoH
-                 /kYBqm1Vup7TitOML29mYjZIvkistBF6S+uXCovHx9M6fLyx5gIGrA8/bO5w
-                 b5g8vY2+IelHfUmxDebaQBJ48pMY6z9aF0M6Kh51ixSrbAUnGAMKGeAoJWBm
-                 LoTkMNc1XOKF18kuZRBkKYMpAWsMkvdDSzXbAHLmAY10sZKRfwuth62Dg9sq
-                 80OwWhBkDQTAP5hKAM+UD/yMVA2YHN1w4XpKcgP84Ov2Yc50ne3eLQoo1T13
-                 YdRXFhJLKMv+xrFfoIGoehe9j2kWNanqndXNRhAOqqtJUyYbzKMdv1r6gSOX
-                 pz08uDOGlhRVe43amknkFUWEbW7nu5MwWGocRxL/cjHQE3/lwjmOH/IGj7uf
-                 xtcXjgpGPyUdbDAeltflB1I9YVo8Ss54tshzYzslIS85BXSDdn5VWrWVjzTa
-                 3RGVW2tBEHXF9nKXz55uDNip/UPVRUgqn/uy778Hw==&lt;/diagram&gt;&
-                 lt;/mxfile&gt;&quot;}"></div>
-<script type="text/javascript"
-src="https://www.draw.io/embed2.js?s=flowchart&"></script>""")
+        fp.write("""<div class="mxgraph" style="max-width:100%;border:1px solid transparent;" data-mxgraph="{&quot;highlight&quot;:&quot;#0000ff&quot;,&quot;nav&quot;:true,&quot;resize&quot;:true,&quot;toolbar&quot;:&quot;zoom layers lightbox&quot;,&quot;edit&quot;:&quot;_blank&quot;,&quot;xml&quot;:&quot;&lt;mxfile userAgent=\&quot;Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36\&quot; version=\&quot;6.2.7\&quot; editor=\&quot;www.draw.io\&quot; type=\&quot;google\&quot;&gt;&lt;diagram name=\&quot;Page-1\&quot;&gt;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&lt;/diagram&gt;&lt;/mxfile&gt;&quot;}"></div>
+<script type="text/javascript" src="https://www.draw.io/embed2.js?s=flowchart&"></script>
+                 """)
