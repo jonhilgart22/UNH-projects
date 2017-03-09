@@ -11,6 +11,7 @@ import datetime
 from pyspark.ml.regression import GBTRegressor
 from pyspark.ml.feature import VectorIndexer, StringIndexer, VectorAssembler
 from pyspark.ml.evaluation import RegressionEvaluator
+import os
 __author__ = 'Jonathan Hilgart'
 
 
@@ -132,7 +133,7 @@ def read_in_data():
     return ml_df
 
 
-def train_gb_model(input_df, number_iterations=150):
+def train_gb_model(input_df, number_iterations=100):
     """  Train a gradient boost model from the bart and weather data.
     Return the trained model, and the rmse from the train test split"""
     ml_df.cache()
@@ -401,8 +402,10 @@ if __name__ =='__main__':
     total_daily_capacity = final_df_predicted_capacity ['daily_capacity'].sum()
     total_predicted_daily_riders = \
         final_df_predicted_capacity['total-predicted-exits'].sum()
+    # delete the previous file
+    os.remove(os.path.expanduser("~/predicted_capacity"))
     # save to html
-    with open("predicted_capacity", "wr") as fp:
+    with open(os.path.expanduser("~/predicted_capacity"), "w") as fp:
         fp.write("""<h1><em>Bart Station Predictions Based Upon Current Weather
                  </em></h1>""")
         fp.write("<p>Updated on {}/{}/{} at SF time= {}:{}</p>".format(
@@ -415,8 +418,9 @@ if __name__ =='__main__':
         fp.write("""<p> Below is a daily live prediction of the number of people
                  that will exit a given bart station. This data utilizes one
                  year of hourly exits per station access at
-                 <a href =http://www.bart.gov/about/reports/ridership>BART data</a>. Alongside these
-                  ridership number, one year of historical weather
+                 <a href =http://www.bart.gov/about/reports/ridership>BART data</a>.
+                  Alongside these
+                  ridership numbers, one year of historical weather
                   for San Francisco was used accessed at
                   <a href=https://www.wunderground.com/history/>weather data.</a></p>""")
         fp.write("""<p> This historic data was fed into a
