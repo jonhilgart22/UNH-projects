@@ -6,6 +6,11 @@
 
 - The spark submit scripts conatins the code used to normalize the bart and weather data as well as the MLlib model used to create the daily rider predictions.
 
+- The data ingestion folder contains the code to
+  1) Pull live bart arrival data every ten minutes
+  2) Pull live weather information for San Francisco
+  3) Push data to Mongodb
+
 - The system dependencies highlights the external libraries used in this project.
 
 
