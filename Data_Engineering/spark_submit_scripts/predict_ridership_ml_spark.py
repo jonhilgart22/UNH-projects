@@ -343,6 +343,8 @@ def make_predictions_today(input_df,historic_bart_df,trained_model):
     final_historic_df = final_historic_live_grouped.loc[:,
         ('station', 'daily_capacity', 'total-predicted-exits',
          'percent_capacity')]
+    final_historic_df['percent_capacity'] = \
+        final_historic_df['percent_capacity']*100
 
     return final_historic_df
 
@@ -357,6 +359,7 @@ if __name__ =='__main__':
     sc = SparkContext()
     spark = SparkSession(sc)
     sqlContext = SQLContext(sc)
+
     # get the time for saving and uploading files
     SF_time = pytz.timezone('US/Pacific')
     yesterday = datetime.datetime.now(SF_time)-datetime.timedelta(1)
@@ -399,11 +402,11 @@ if __name__ =='__main__':
     final_df_predicted_capacity = \
         make_predictions_today(final_bart_weather_df, ml_df, trained_gb_model)
     # get capacity and rider information
-    total_daily_capacity = final_df_predicted_capacity ['daily_capacity'].sum()
+    total_daily_capacity = final_df_predicted_capacity['daily_capacity'].sum()
     total_predicted_daily_riders = \
         final_df_predicted_capacity['total-predicted-exits'].sum()
     # delete the previous file
-    os.remove(os.path.expanduser("~/predicted_capacity"))
+    #os.remove(os.path.expanduser("~/predicted_capacity"))
     # save to html
     with open(os.path.expanduser("~/predicted_capacity"), "w") as fp:
         fp.write("""<h1><em>Bart Station Predictions Based Upon Current Weather
