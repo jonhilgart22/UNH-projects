@@ -1,4 +1,7 @@
-## This project creates daily predictions of bart capacity for each station.
+## This project creates daily predictions of BART capacity for each station.
+
+##### What if you could know how full the next BART train would be before it arrived?
+  - The overarching idea was to combine historical weather and BART ridership information, alongside live BART train arrival, BART train size, and live weather information to generate near real-time capacity predictions. This project ended up with a daily prediction for each station, but future versions can decrease this time latency.
 
 - The notebook daily bart ridership predictions gives an overview of the project including the architecture.
 
