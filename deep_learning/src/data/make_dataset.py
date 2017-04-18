@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
+# usr/bin/env python
 import os
 import click
 import logging
 from dotenv import find_dotenv, load_dotenv
+from auxiliary_functions import convert_miles_to_minutes_nyc, geohash_encoding, myround, time_to_int
+
 
 
 @click.command()
