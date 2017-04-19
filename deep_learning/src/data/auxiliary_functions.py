@@ -5,7 +5,7 @@ def geohash_encoding(taxi_df,precision_=5):
     5: 3803, 6: 610, 7: 118, 8: 19, 9: 3.71, 10: 0.6, } - all distances in meters.
 
     Average taxi speed in 2014 was 5.51 miles per hour, or 3.8 meters per second.
-    Precision of 5, means that a taxi should traverse this square in ~16 minutes avg. speed 8.6 MPH.
+    Precision of 5, means that a taxi should traverse this square in ~15 minutes avg. speed 8.6 MPH.
     Precision of 6, means a taxi should traverse square in ~3 minutes using average speed of 8.6mph.
     Precision of 7, means a taxi should traverse the square in ~1 minute.
 
@@ -71,5 +71,14 @@ def time_to_int(time):
     if len(minutes)==1:
         minutes = '0'+minutes
     return int(hour+minutes)
+
+def convert_timestamp_to_time_units(df_):
+    """Transform a timestamp into minute column, da column, month column."""
+    df_['jan_day']=\
+    [dateutil.parser.parse(i).day for i in df_.tpep_dropoff_datetime]
+
+    df_['jan_minute']=[dateutil.parser.parse(i).minute
+                       for i in df_.tpep_dropoff_datetime]
+    df_['month'] =[i.month for i in df_.tpep_pickup_datetime]
 
 list_of_output_predictions_to_direction={0:'nw',1:'n',2:'ne',3:'w',4:'stay',5:'e',6:'sw',7:'s',8:'se'}
