@@ -38,6 +38,7 @@ Project Organization
     │   │   │                 predictions
     │   │   ├── predict_model.py
     │   │   └── train_model.py    <- Train the RL algorithm 
+    |   |   |_ hyperparameter_optimization.py <- hyperparameter selection for the MLP model for our RL algorithm
     │   │
     │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
     │       └── plotting_geohashes.py   <- A script to see a heatmap of fares over time for January for NYC taxis
