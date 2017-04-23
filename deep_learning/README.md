@@ -9,13 +9,8 @@ Project Organization
     ├── LICENSE
     ├── Makefile           <- Makefile with commands like `make data` or `make train`
     ├── README.md          <- The top-level README for developers using this project.
-    ├── data
-    │   ├── external       <- Data from third party sources.
-    │   ├── interim        <- Intermediate data that has been transformed.
-    │   ├── processed      <- The final, canonical data sets for modeling.
-    │   └── raw            <- The original, immutable data dump.
-    │
-    ├── docs               <- A default Sphinx project; see sphinx-doc.org for details
+    ├── data               <- Not available on GitHub
+    │  
     │
     ├── models             <- Trained and serialized models, model predictions, or model summaries
     │
@@ -35,18 +30,17 @@ Project Organization
     │   ├── __init__.py    <- Makes src a Python module
     │   │
     │   ├── data           <- Scripts to download or generate data
-    │   │   └── make_dataset.py
+    │   │   └── make_dataset.py   <- Uses a preprocessed .csv file to load into memory with auxiliary function (below)
+    |   |   |__ auxiliary_functions.py <- functions to compute geohashes from latitudes. General data cleaning scripts
     │   │
-    │   ├── features       <- Scripts to turn raw data into features for modeling
-    │   │   └── build_features.py
     │   │
     │   ├── models         <- Scripts to train models and then use trained models to make
     │   │   │                 predictions
     │   │   ├── predict_model.py
-    │   │   └── train_model.py
+    │   │   └── train_model.py    <- Train the RL algorithm 
     │   │
     │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
-    │       └── visualize.py
+    │       └── plotting_geohashes.py   <- A script to see a heatmap of fares over time for January for NYC taxis
     │
     └── tox.ini            <- tox file with settings for running tox; see tox.testrun.org
 
