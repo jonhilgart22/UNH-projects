@@ -1,4 +1,4 @@
-### Data Dictionary : Yellow Taxi Cab
+ ### Data Dictionary : Yellow Taxi Cab
 - VendorID A code indicating the TPEP provider that provided the record.
 1= Creative Mobile Technologies, LLC; 2= VeriFone Inc.
 - tpep_pickup_datetime The date and time when the meter was engaged.
