@@ -16,6 +16,7 @@ import time
 import sys
 import auxiliary_functions, make_dataset
 from py_geohash_any import geohash as gh
+from keras import backend as K
 from auxiliary_functions import convert_miles_to_minutes_nyc, list_of_output_predictions_to_direction
 __author__ = 'Jonathan Hilgart'
 
@@ -23,8 +24,8 @@ __author__ = 'Jonathan Hilgart'
  #parameters
 ACTIONS = 9 # number of valid actions
 GAMMA = 0.99 # decay rate of past observations
-OBSERVATION = 100000. # timesteps to observe before training
-EXPLORE = 3000. # frames over which to anneal epsilon
+OBSERVATION = 5000. # timesteps to observe before training
+EXPLORE = 30000. # frames over which to anneal epsilon
 FINAL_EPSILON = 0.0001 # final value of epsilon
 INITIAL_EPSILON = 0.1 # starting value of epsilon
 REPLAY_MEMORY = 50000 # number of previous transitions to remember
@@ -172,10 +173,10 @@ class RLNYCTaxiCab(object):
         #print(s_t,'starting time and geohash index')
 
         if args['mode'] == 'Run':
-            OBSERVE = 99   #We keep observe, never train
+            OBSERVE = 20  #We keep observe, never train
             epsilon = FINAL_EPSILON
             print ("Now we load weight")
-            self.model_mlp.load_weights("model_mlp.h5")
+            self.model_mlp.load_weights("model_mlp_million.h5")
             adam = Adam(lr=LEARNING_RATE)
             self.model_mlp.compile(loss='mse',optimizer=adam)
             print ("Weight load successfully")
@@ -187,6 +188,7 @@ class RLNYCTaxiCab(object):
 
         #start your observations
         t = 0
+        total_days_driven = 0
         loss_list = []
         total_fare_received = 0
         total_fare_received_over_time = []
@@ -227,12 +229,6 @@ class RLNYCTaxiCab(object):
             #We reduced the epsilon gradually to take more random actions
             if epsilon > FINAL_EPSILON and t > OBSERVE:
                 epsilon -= (INITIAL_EPSILON - FINAL_EPSILON) / EXPLORE
-
-            #print(a_t,'a_t')
-            #print(action_index,'action Index')
-            #print(list_of_output_predictions_to_direction[np.argmax(a_t)],'direction to take')
-
-
             #run the selected action and observed next state and reward
             # We need to find the neighbors to the geohash that we started at
 
@@ -247,11 +243,8 @@ class RLNYCTaxiCab(object):
                 possible_rewards = np.array(self.final_data_structure[s_time][new_geohash])
                 # hash with the letters  of the geohash above
                 new_geohash = self.list_of_geohash_index[starting_geohash]
-                #print(new_geohash,'new geohash stay')
             else:
                 new_geohash = neighbors[direction_to_move_to]## give us the geohash to move to next
-                #print(new_geohash,'new geohash moved to new mplace')
-            #print(new_geohash,'new geohash we moved to')
 
             # get the reward of the geohash we just moved to (this is the ratio of fare /time of trip)
             # time, geohash, list of tuple ( fare, time ,ratio)
@@ -268,10 +261,7 @@ class RLNYCTaxiCab(object):
     #             print('trip length',possible_rewards[np.random.randint(0,len(possible_rewards))][1] )
                 s_time1 = s_time + possible_rewards[np.random.randint(0,len(possible_rewards))][1]
                 #r_t = np.random.choice(possible_rewards)
-            #print(r_t,'reward')
-            #print(s_time,'current time')
             s_geohash1 = self.list_of_geohash_index[new_geohash]
-            #print(s_time1,s_geohash1 , 'time1, geohash1')
 
             # store the transition in D
             if s_time1 <= 2350: # The last possible time for a trip
@@ -279,6 +269,7 @@ class RLNYCTaxiCab(object):
             else: # the day is over, pick a new starting geohash and time
                 print('We finished a day!')
                 terminal = 1
+                total_days_driven +=1
                 # Choose a new starting time and geohash
                 s_time1 = np.random.choice(self.list_of_time_index)
                 s_geohash1 =   self.list_of_geohash_index[np.random.choice(
@@ -310,8 +301,6 @@ class RLNYCTaxiCab(object):
 
             if len(D) > REPLAY_MEMORY: ## don't store a huge replay memory
                 D.popleft()
-            #print('Finished iteration -----')
-
 
             ######### NEXT SEXTION #########
             #only train if done observing
@@ -321,9 +310,7 @@ class RLNYCTaxiCab(object):
                 inputs = []
 
                 inputs = np.zeros((BATCH, s_t.shape[1]))   #16, 2
-                #print (inputs.shape)
-                targets = np.zeros((inputs.shape[0], ACTIONS))                         #16, 9
-
+                targets = np.zeros((inputs.shape[0], ACTIONS))       #16, 9
                 #Now we do the experience replay
                 for i in range(0, len(minibatch)): # 0 -15 for batch 16
                     s_time_t = minibatch[i][0]
@@ -353,8 +340,6 @@ class RLNYCTaxiCab(object):
 
                 # targets2 = normalize(targets)
                 loss += self.model_mlp.train_on_batch(inputs, targets)
-                #print(inputs, ' training inputs')
-                #print(targets,' training targets')
                 loss_list.append(loss)
                 if self.return_metrics == True:
                     # only record fares once we start training
@@ -386,7 +371,8 @@ class RLNYCTaxiCab(object):
             if t ==training_length:
                 if self.return_metrics == True:
                     return loss_list, total_fare_received_over_time, \
-                        list_of_geohashes_visited,  total_naive_fare_over_time
+                        list_of_geohashes_visited,  total_naive_fare_over_time,\
+                        total_days_driven
                 if self.return_training_data ==True:
                     return self.training_data_X, self.training_data_y
 
@@ -396,8 +382,6 @@ class RLNYCTaxiCab(object):
                     with open("model.json", "w") as outfile:
                         json.dump(self.model_mlp.to_json(), outfile)
                     break
-
-
 
             # increment the state and time information
             s_time = s_time1
@@ -413,29 +397,34 @@ class RLNYCTaxiCab(object):
 
 
 if __name__ =="__main__":
-    #yopen up the data
-    taxi_yellowcab_df, final_data_structure= make_dataset.main()
-    ## the the data structures needed for the RL calss
-    list_of_output_predictions_to_direction={0:'nw',1:'n',2:'ne',3:'w',4:'stay',5:'e',6:'sw',7:'s',8:'se'}
-    list_of_unique_geohashes = taxi_yellowcab_df.geohash_pickup.unique()
-    list_of_geohash_index  = defaultdict(int)
-    for idx,hash_n in enumerate(list_of_unique_geohashes):
-        list_of_geohash_index [hash_n] = idx
-    list_of_inverse_heohash_index = defaultdict(str)
-    for idx,hash_n in enumerate(list_of_unique_geohashes):
-        list_of_inverse_heohash_index[idx] = hash_n
-    hours = [str(_) for _ in range(24)]
-    minutes = [str(_) for _ in range(0,60,10)]
-    minutes.append('00')
-    list_of_time_index =[]
-    for h in hours:
-        for m in minutes:
-            list_of_time_index.append(int(str(h)+str(m)))
-    list_of_time_index = list(set(list_of_time_index))
-    #
-    arg = {'mode':'Test'}
-    train_rl_taxi = RLNYCTaxiCab(list_of_unique_geohashes,list_of_time_index,list_of_geohash_index,
-            ist_of_inverse_heohash_index, final_data_structure, return_metrics=False)
+    import gc; gc.collect()
 
-    train_rl_taxi.trainNetworkNeuralNetworkTaxicab(arg, training_length=400,
-                                                   return_training_data =True)
+    with K.get_session(): ## TF session
+
+        #yopen up the data
+        taxi_yellowcab_df, final_data_structure= make_dataset.main()
+        ## the the data structures needed for the RL calss
+        list_of_output_predictions_to_direction =\
+            {0:'nw',1:'n',2:'ne',3:'w',4:'stay',5:'e',6:'sw',7:'s',8:'se'}
+        list_of_unique_geohashes = taxi_yellowcab_df.geohash_pickup.unique()
+        list_of_geohash_index  = defaultdict(int)
+        for idx,hash_n in enumerate(list_of_unique_geohashes):
+            list_of_geohash_index [hash_n] = idx
+        list_of_inverse_heohash_index = defaultdict(str)
+        for idx,hash_n in enumerate(list_of_unique_geohashes):
+            list_of_inverse_heohash_index[idx] = hash_n
+        hours = [str(_) for _ in range(24)]
+        minutes = [str(_) for _ in range(0,60,10)]
+        minutes.append('00')
+        list_of_time_index =[]
+        for h in hours:
+            for m in minutes:
+                list_of_time_index.append(int(str(h)+str(m)))
+        list_of_time_index = list(set(list_of_time_index))
+        #
+        arg = {'mode':'Test'}
+        train_rl_taxi = RLNYCTaxiCab(list_of_unique_geohashes,list_of_time_index,list_of_geohash_index,
+                list_of_inverse_heohash_index, final_data_structure, return_metrics=False)
+
+        train_rl_taxi.trainNetworkNeuralNetworkTaxicab(arg, training_length=1000000,
+                                                       return_training_data =False)

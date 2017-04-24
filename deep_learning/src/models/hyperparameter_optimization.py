@@ -46,16 +46,16 @@ def model(x_train, y_train, x_test, y_test):
         - model: specify the model just created so that we can later use it again.
     """
     model_mlp = Sequential()
-    model_mlp.add(Dense({{choice([126, 256, 512, 1024])}},
+    model_mlp.add(Dense({{choice([64,126, 256, 512, 1024])}},
                         activation='relu', input_shape= (2,)))
     model_mlp.add(Dropout({{uniform(0, .5)}}))
-    model_mlp.add(Dense({{choice([126, 256, 512, 1024])}}))
+    model_mlp.add(Dense({{choice([64, 126, 256, 512, 1024])}}))
     model_mlp.add(Activation({{choice(['relu', 'sigmoid'])}}))
     model_mlp.add(Dropout({{uniform(0, .5)}}))
-    model_mlp.add(Dense({{choice([126, 256, 512, 1024])}}))
+    model_mlp.add(Dense({{choice([64, 126, 256, 512, 1024])}}))
     model_mlp.add(Activation({{choice(['relu', 'sigmoid'])}}))
     model_mlp.add(Dropout({{uniform(0, .5)}}))
-    model_mlp.add(Dense({{choice([126, 256, 512, 1024])}}))
+    model_mlp.add(Dense({{choice([64, 126, 256, 512, 1024])}}))
     model_mlp.add(Activation({{choice(['relu', 'sigmoid'])}}))
     model_mlp.add(Dropout({{uniform(0, .5)}}))
     model_mlp.add(Dense(9))
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     best_run, best_model = optim.minimize(model=model,
                                           data=data,
                                           algo=tpe.suggest,
-                                          max_evals=5,
+                                          max_evals=1,
                                           trials=Trials())
     X_train, Y_train, X_test, Y_test = data()
     print("Evalutation of best performing model:")
