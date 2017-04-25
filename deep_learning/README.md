@@ -1,7 +1,8 @@
 Deep_Learning
 ==============================
 
-Maximize revenue of NYC taxicabs with deep reinforcement learning
+Maximize revenue of NYC taxicabs with deep reinforcement learning (DQN).
+This project was inspired by http://cs229.stanford.edu/proj2014/Jingshu%20Wang,%20Benjamin%20Lampert,%20Improving%20Taxi%20Revenue%20With%20Reinforcement%20Learning.pdf
 
 Project Organization
 ------------
@@ -35,12 +36,12 @@ Project Organization
     │   │
     │   │
     │   ├── models         <- Scripts to train models and then use trained models to make
-    │   │   │                 predictions
+    │   │   │                 predictions. Also, includes training data.
     │   │   ├── predict_model.py
-    │   │   └── train_model.py    <- Train the RL algorithm 
+    │   │   └── train_model.py    <- Train the RL algorithm
     |   |   |_ hyperparameter_optimization.py <- hyperparameter selection for the MLP model for our RL algorithm
     │   │
-    │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
+    │   └── visualization  <- Scripts to create exploratory and results oriented visualizations. Additional images showing the loss and fares earned over time.
     │       └── plotting_geohashes.py   <- A script to see a heatmap of fares over time for January for NYC taxis
     │
     └── tox.ini            <- tox file with settings for running tox; see tox.testrun.org
