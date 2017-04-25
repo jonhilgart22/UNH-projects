@@ -17,7 +17,8 @@ import sys
 import auxiliary_functions, make_dataset
 from py_geohash_any import geohash as gh
 from keras import backend as K
-from auxiliary_functions import convert_miles_to_minutes_nyc, list_of_output_predictions_to_direction
+from auxiliary_functions import convert_miles_to_minutes_nyc, \
+    list_of_output_predictions_to_direction
 __author__ = 'Jonathan Hilgart'
 
 
@@ -25,13 +26,14 @@ __author__ = 'Jonathan Hilgart'
 ACTIONS = 9 # number of valid actions
 GAMMA = 0.99 # decay rate of past observations
 OBSERVATION = 5000. # timesteps to observe before training
-EXPLORE = 30000. # frames over which to anneal epsilon
-FINAL_EPSILON = 0.0001 # final value of epsilon
+EXPLORE = 3000000 # frames over which to anneal epsilon
+FINAL_EPSILON = 0.001 # final value of epsilon
 INITIAL_EPSILON = 0.1 # starting value of epsilon
+TRAINING_EPSILON = .1
 REPLAY_MEMORY = 50000 # number of previous transitions to remember
-BATCH = 16 # size of minibatch
+BATCH = 32 # size of minibatch
 FRAME_PER_ACTION = 1
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 1e-1
 
 
 class RLNYCTaxiCab(object):
@@ -61,7 +63,7 @@ class RLNYCTaxiCab(object):
         model_mlp.add(Dropout(.3))
         model_mlp.add(Dense(9, activation='softmax')) ## predict which geohash to move to next
         adam = Adam(lr=LEARNING_RATE)
-        model_mlp.compile(loss='categorical_crossentropy',optimizer=adam)
+        model_mlp.compile(loss='mse',optimizer=adam)
 
         self.model_mlp = model_mlp
 
@@ -153,9 +155,12 @@ class RLNYCTaxiCab(object):
     def trainNetworkNeuralNetworkTaxicab(self, args, training_length=1000,
                                          return_training_data = False):
         # Code adapted from https://github.com/yanpanlau/Keras-FlappyBird/blob/master/qlearn.py
-        """Train a DQN algorithm to learn how the best geohashes to go to throughout the day. Each geohash is about
+        """Train a DQN algorithm to learn how the best geohashes to go to throughout the day.
+         Each geohash is about
         3803 x 3803 meters (~15 minutes of driving time to traverse in NYC).
-        This algoirthm incorporates experience replay to stablize the training procedure. """
+        This algoirthm incorporates experience replay to stablize the training procedure
+        for the DWN algorithm. Due to the large size of the input features,
+        you need to train for a long time (1-2million iterations) """
 
         self.return_training_data = return_training_data
         # store the previous observations in replay memory
@@ -170,11 +175,10 @@ class RLNYCTaxiCab(object):
 
         s_t = np.array([[s_time,
                          s_geohash]])
-        #print(s_t,'starting time and geohash index')
 
         if args['mode'] == 'Run':
-            OBSERVE = 20  #We keep observe, never train
-            epsilon = FINAL_EPSILON
+            OBSERVE = 5000  #We keep observe, never train
+            epsilon = TRAINING_EPSILON
             print ("Now we load weight")
             self.model_mlp.load_weights("model_mlp_million.h5")
             adam = Adam(lr=LEARNING_RATE)
@@ -183,8 +187,6 @@ class RLNYCTaxiCab(object):
         else:                       #We go to training mode
             OBSERVE = OBSERVATION
             epsilon = INITIAL_EPSILON
-
-
 
         #start your observations
         t = 0
@@ -207,7 +209,6 @@ class RLNYCTaxiCab(object):
 
         start_time = time.time()
         while (True):
-
             loss = 0
             Q_sa = 0
             action_index = 0
@@ -258,7 +259,6 @@ class RLNYCTaxiCab(object):
                 r_t =  possible_rewards[np.random.randint(0,len(possible_rewards))][2] # get the ratio of fare / trip time
                 fare_t = possible_rewards[np.random.randint(0,len(possible_rewards))][0]
                 # get the trip length
-    #             print('trip length',possible_rewards[np.random.randint(0,len(possible_rewards))][1] )
                 s_time1 = s_time + possible_rewards[np.random.randint(0,len(possible_rewards))][1]
                 #r_t = np.random.choice(possible_rewards)
             s_geohash1 = self.list_of_geohash_index[new_geohash]
@@ -282,10 +282,12 @@ class RLNYCTaxiCab(object):
                         total_naive_fare, total_naive_fare_over_time, naive_geohashes_visited = \
                         self.NaiveApproach(s_time1, s_geohash1,
                             starting_geohash, total_naive_fare_over_time,total_naive_fare )
+                        if return_training_data == True:
+                            list_of_naive_geohashes_visited.extend(naive_geohashes_visited)
             # Terminal should be a one if the day is over or a zero otherwise
             # time, geohash, action index, reward, time1, geohash 1, terminal
 
-            D.append((s_time,s_geohash, action_index, r_t, s_time1, s_geohash1, terminal, fare_t))
+            D.append((s_time,s_geohash, action_index, r_t, s_time1, s_geohash1, terminal))
 
             if return_training_data  == True: # append training data
                 if r_t >0: ## normalize the values for hyperas
@@ -320,7 +322,6 @@ class RLNYCTaxiCab(object):
                     s_time_t1 = minibatch[i][4]
                     s_geohash_t1 = minibatch[i][5]
                     terminal = minibatch[i][6]
-                    fare_t = minibatch[i][7]
                     # if terminated, only equals reward
                     for col in range(inputs.shape[1]-1):
                         inputs[i,col] = s_time_t   #Save the time and geohash in the inputs to the model
@@ -337,8 +338,6 @@ class RLNYCTaxiCab(object):
 
                     else:
                         targets[i, action_t] = reward_t + GAMMA * np.max(Q_sa) ## exponential discounting for each memory
-
-                # targets2 = normalize(targets)
                 loss += self.model_mlp.train_on_batch(inputs, targets)
                 loss_list.append(loss)
                 if self.return_metrics == True:
@@ -361,18 +360,19 @@ class RLNYCTaxiCab(object):
                 with open("model.json", "w") as outfile:
                     json.dump(self.model_mlp.to_json(), outfile)
 
+            if t % 500 == 0:
                 print("TIMESTEP", t, "/ STATE", state, \
                 "/ EPSILON", epsilon, "/ ACTION", action_index, "/ REWARD", r_t, \
                 "/ Q_MAX " , np.max(Q_sa), "/ Loss ", loss, "/ Total fare ", total_fare_received)
                 now_time = time.time()
-                print('1000 steps took {}'.format(now_time - start_time))
+                print('500 steps took {}'.format(now_time - start_time))
                 start_time = now_time
 
             if t ==training_length:
                 if self.return_metrics == True:
                     return loss_list, total_fare_received_over_time, \
                         list_of_geohashes_visited,  total_naive_fare_over_time,\
-                        total_days_driven
+                        total_days_driven, list_of_naive_geohashes_visited
                 if self.return_training_data ==True:
                     return self.training_data_X, self.training_data_y
 
@@ -422,7 +422,7 @@ if __name__ =="__main__":
                 list_of_time_index.append(int(str(h)+str(m)))
         list_of_time_index = list(set(list_of_time_index))
         #
-        arg = {'mode':'Test'}
+        arg = {'mode':'Run'}
         train_rl_taxi = RLNYCTaxiCab(list_of_unique_geohashes,list_of_time_index,list_of_geohash_index,
                 list_of_inverse_heohash_index, final_data_structure, return_metrics=False)
 

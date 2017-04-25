@@ -46,28 +46,28 @@ def model(x_train, y_train, x_test, y_test):
         - model: specify the model just created so that we can later use it again.
     """
     model_mlp = Sequential()
-    model_mlp.add(Dense({{choice([64,126, 256, 512, 1024])}},
+    model_mlp.add(Dense({{choice([32, 64,126, 256, 512, 1024])}},
                         activation='relu', input_shape= (2,)))
     model_mlp.add(Dropout({{uniform(0, .5)}}))
-    model_mlp.add(Dense({{choice([64, 126, 256, 512, 1024])}}))
+    model_mlp.add(Dense({{choice([32, 64, 126, 256, 512, 1024])}}))
     model_mlp.add(Activation({{choice(['relu', 'sigmoid'])}}))
     model_mlp.add(Dropout({{uniform(0, .5)}}))
-    model_mlp.add(Dense({{choice([64, 126, 256, 512, 1024])}}))
+    model_mlp.add(Dense({{choice([32, 64, 126, 256, 512, 1024])}}))
     model_mlp.add(Activation({{choice(['relu', 'sigmoid'])}}))
     model_mlp.add(Dropout({{uniform(0, .5)}}))
-    model_mlp.add(Dense({{choice([64, 126, 256, 512, 1024])}}))
+    model_mlp.add(Dense({{choice([32, 64, 126, 256, 512, 1024])}}))
     model_mlp.add(Activation({{choice(['relu', 'sigmoid'])}}))
     model_mlp.add(Dropout({{uniform(0, .5)}}))
     model_mlp.add(Dense(9))
-    model_mlp.add(Activation('softmax'))
-    model_mlp.compile(loss='categorical_crossentropy', metrics=['accuracy'],
+    model_mlp.add(Activation({{choice(['softmax','linear'])}}))
+    model_mlp.compile(loss={{choice(['categorical_crossentropy','mse'])}}, metrics=['accuracy'],
                   optimizer={{choice(['rmsprop', 'adam', 'sgd'])}})
 
 
 
     model_mlp.fit(x_train, y_train,
               batch_size={{choice([16, 32, 64, 128])}},
-              epochs=100,
+              epochs=50,
               verbose=2,
               validation_data=(x_test, y_test))
     score, acc = model_mlp.evaluate(x_test, y_test, verbose=0)
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     best_run, best_model = optim.minimize(model=model,
                                           data=data,
                                           algo=tpe.suggest,
-                                          max_evals=1,
+                                          max_evals=2,
                                           trials=Trials())
     X_train, Y_train, X_test, Y_test = data()
     print("Evalutation of best performing model:")

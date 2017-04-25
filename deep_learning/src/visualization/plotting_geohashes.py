@@ -26,7 +26,8 @@ class KmlMaker(object):
     def loadLocations(self):
         counts = {}
         for line in open(self.filename,"rU"):
-            (geohashcode, count) = line.strip().split("\t")
+            # print(line.split(),'line split')
+            (geohashcode, count) = line.strip().split()
             self.locations[geohashcode] = count
         print ('Done loading geohashcode counts.')
 
