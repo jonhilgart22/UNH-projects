@@ -12,8 +12,10 @@ from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.optimizers import SGD , Adam
 import tensorflow as tf
+from keras.layers.normalization import BatchNormalization
 import time
 import sys
+import pickle
 import auxiliary_functions, make_dataset
 from py_geohash_any import geohash as gh
 from keras import backend as K
@@ -53,15 +55,19 @@ class RLNYCTaxiCab(object):
         """Build a simple MLP model.
         Input  time follwoed by the  geohash index. """
         model_mlp = Sequential()
-        model_mlp.add(Dense(100, activation='relu', input_shape= (2,)))
+        model_mlp.add(Dense(100, input_shape=(2,)))
+        model_mlp.add(BatchNormalization())
+        model_mlp.add(Activation('relu'))
         model_mlp.add(Dropout(.3))
-        model_mlp.add(Dense(500, activation='relu'))
+        model_mlp.add(Dense(500))
+        model_mlp.add(BatchNormalization())
+        model_mlp.add(Activation('relu'))
         model_mlp.add(Dropout(.3))
-        model_mlp.add(Dense(500, activation='relu'))
+        model_mlp.add(Dense(1000))
+        model_mlp.add(BatchNormalization())
+        model_mlp.add(Activation('relu'))
         model_mlp.add(Dropout(.3))
-        model_mlp.add(Dense(100, activation='relu'))
-        model_mlp.add(Dropout(.3))
-        model_mlp.add(Dense(9, activation='softmax')) ## predict which geohash to move to next
+        model_mlp.add(Dense(9, activation='linear')) ## predict which geohash to move to next
         adam = Adam(lr=LEARNING_RATE)
         model_mlp.compile(loss='mse',optimizer=adam)
 
@@ -153,7 +159,7 @@ class RLNYCTaxiCab(object):
 
 
     def trainNetworkNeuralNetworkTaxicab(self, args, training_length=1000,
-                                         return_training_data = False):
+                                         return_training_data = False, save_model = False):
         # Code adapted from https://github.com/yanpanlau/Keras-FlappyBird/blob/master/qlearn.py
         """Train a DQN algorithm to learn how the best geohashes to go to throughout the day.
          Each geohash is about
@@ -180,7 +186,7 @@ class RLNYCTaxiCab(object):
             OBSERVE = 5000  #We keep observe, never train
             epsilon = TRAINING_EPSILON
             print ("Now we load weight")
-            self.model_mlp.load_weights("model_mlp_million.h5")
+            self.model_mlp.load_weights("model_mlp.h5")
             adam = Adam(lr=LEARNING_RATE)
             self.model_mlp.compile(loss='mse',optimizer=adam)
             print ("Weight load successfully")
@@ -222,9 +228,11 @@ class RLNYCTaxiCab(object):
                     action_index = random.randrange(ACTIONS) # Randomlly choose another geohash to go to
                     a_t[action_index] = 1
                 else:
+                    #print("------------Predicted Action___________")
                     q = self.model_mlp.predict(s_t)       #input the time followed by the geohash index
                     max_Q = np.argmax(q)  # find the position of the highest probability (which direction to go in)
                     action_index = max_Q
+                    #print('Action {}'.format(action_index))
                     a_t[max_Q] = 1
 
             #We reduced the epsilon gradually to take more random actions
@@ -291,14 +299,12 @@ class RLNYCTaxiCab(object):
 
             if return_training_data  == True: # append training data
                 if r_t >0: ## normalize the values for hyperas
-                    training_r = 1
                     self.training_data_X[t,:] = np.array([s_time, s_geohash])
-                    self.training_data_y[t,action_index] = np.array([training_r])
+                    self.training_data_y[t,action_index] = np.array([r_t])
                 else:
-                    training_r = 0
                     self.training_data_X[t,:] = np.array([s_time, s_geohash])
                     # action index for the reward
-                    self.training_data_y[t,action_index] = training_r
+                    self.training_data_y[t,action_index] = r_t
 
 
             if len(D) > REPLAY_MEMORY: ## don't store a huge replay memory
@@ -354,33 +360,44 @@ class RLNYCTaxiCab(object):
             else:
                 state = "train"
 
-            if t % 1000 == 0:
-                print("Now we save model")
-                self.model_mlp.save_weights("model_mlp.h5", overwrite=True)
-                with open("model.json", "w") as outfile:
-                    json.dump(self.model_mlp.to_json(), outfile)
+            if save_model == True:
+                if t % 1000 == 0:
+                    print("Now we save model")
+                    self.model_mlp.save_weights("model_mlp_linear.h5", overwrite=True)
+                    with open("model.json", "w") as outfile:
+                        json.dump(self.model_mlp.to_json(), outfile)
 
             if t % 500 == 0:
                 print("TIMESTEP", t, "/ STATE", state, \
                 "/ EPSILON", epsilon, "/ ACTION", action_index, "/ REWARD", r_t, \
-                "/ Q_MAX " , np.max(Q_sa), "/ Loss ", loss, "/ Total fare ", total_fare_received)
+                "/ Q_MAX " , np.max(Q_sa), "/ Loss ", loss, "/ Total fare RL ", total_fare_received,
+                "/ Total fare naive", total_naive_fare)
                 now_time = time.time()
                 print('500 steps took {}'.format(now_time - start_time))
                 start_time = now_time
 
-            if t ==training_length:
-                if self.return_metrics == True:
+            if t ==training_length: ### end training
+                if self.return_metrics == True and save_model == True:
+                    print("Now we save model")
+                    self.model_mlp.save_weights("model_mlp_linear.h5", overwrite=True)
+                    with open("model.json", "w") as outfile:
+                        json.dump(self.model_mlp.to_json(), outfile)
                     return loss_list, total_fare_received_over_time, \
                         list_of_geohashes_visited,  total_naive_fare_over_time,\
                         total_days_driven, list_of_naive_geohashes_visited
-                if self.return_training_data ==True:
+                elif self.return_metrics == True:
+                    return loss_list, total_fare_received_over_time, \
+                        list_of_geohashes_visited,  total_naive_fare_over_time,\
+                        total_days_driven, list_of_naive_geohashes_visited
+                elif self.return_training_data ==True:
                     return self.training_data_X, self.training_data_y
-
-                else:
+                elif save_model == True:
                     print("Now we save model")
-                    self.model_mlp.save_weights("model_mlp.h5", overwrite=True)
+                    self.model_mlp.save_weights("model_mlp_linear.h5", overwrite=True)
                     with open("model.json", "w") as outfile:
                         json.dump(self.model_mlp.to_json(), outfile)
+                    break
+                else:# something weird happened
                     break
 
             # increment the state and time information
@@ -388,43 +405,63 @@ class RLNYCTaxiCab(object):
             s_geohash = s_geohash1
             if self.return_metrics == True:
                 list_of_geohashes_visited.append(starting_geohash)
-
-
             starting_geohash = new_geohash## update the starting geohash in case we stay here
             t = t + 1
 
+def data_attributes(taxi_yellowcab_df):
+    """Some random data objects needed to train the RL algorithm"""
+    list_of_output_predictions_to_direction =\
+        {0:'nw',1:'n',2:'ne',3:'w',4:'stay',5:'e',6:'sw',7:'s',8:'se'}
+    list_of_unique_geohashes = taxi_yellowcab_df.geohash_pickup.unique()
+    list_of_geohash_index  = defaultdict(int)
+    for idx,hash_n in enumerate(list_of_unique_geohashes):
+        list_of_geohash_index [hash_n] = idx
+    list_of_inverse_heohash_index = defaultdict(str)
+    for idx,hash_n in enumerate(list_of_unique_geohashes):
+        list_of_inverse_heohash_index[idx] = hash_n
+    hours = [str(_) for _ in range(24)]
+    minutes = [str(_) for _ in range(0,60,10)]
+    minutes.append('00')
+    list_of_time_index =[]
+    for h in hours:
+        for m in minutes:
+            list_of_time_index.append(int(str(h)+str(m)))
 
+    list_of_time_index = list(set(list_of_time_index))
+    return list_of_output_predictions_to_direction, list_of_unique_geohashes, \
+        list_of_geohash_index, list_of_time_index , list_of_inverse_heohash_index
 
 
 if __name__ =="__main__":
     import gc; gc.collect()
 
     with K.get_session(): ## TF session
-
         #yopen up the data
         taxi_yellowcab_df, final_data_structure= make_dataset.main()
         ## the the data structures needed for the RL calss
-        list_of_output_predictions_to_direction =\
-            {0:'nw',1:'n',2:'ne',3:'w',4:'stay',5:'e',6:'sw',7:'s',8:'se'}
-        list_of_unique_geohashes = taxi_yellowcab_df.geohash_pickup.unique()
-        list_of_geohash_index  = defaultdict(int)
-        for idx,hash_n in enumerate(list_of_unique_geohashes):
-            list_of_geohash_index [hash_n] = idx
-        list_of_inverse_heohash_index = defaultdict(str)
-        for idx,hash_n in enumerate(list_of_unique_geohashes):
-            list_of_inverse_heohash_index[idx] = hash_n
-        hours = [str(_) for _ in range(24)]
-        minutes = [str(_) for _ in range(0,60,10)]
-        minutes.append('00')
-        list_of_time_index =[]
-        for h in hours:
-            for m in minutes:
-                list_of_time_index.append(int(str(h)+str(m)))
-        list_of_time_index = list(set(list_of_time_index))
+        list_of_output_predictions_to_direction, list_of_unique_geohashes, \
+            list_of_geohash_index, list_of_time_index,list_of_inverse_heohash_index\
+             = data_attributes(taxi_yellowcab_df)
         #
-        arg = {'mode':'Run'}
-        train_rl_taxi = RLNYCTaxiCab(list_of_unique_geohashes,list_of_time_index,list_of_geohash_index,
-                list_of_inverse_heohash_index, final_data_structure, return_metrics=False)
+        arg = {'mode':'Train','save_model':True}
+        train_rl_taxi = RLNYCTaxiCab(list_of_unique_geohashes,list_of_time_index,list_of_geohash_index,\
+                list_of_inverse_heohash_index, final_data_structure, return_metrics=True)
 
-        train_rl_taxi.trainNetworkNeuralNetworkTaxicab(arg, training_length=1000000,
-                                                       return_training_data =False)
+        if arg['save_model']==True:
+            loss_list, total_fare_received_over_time, list_of_geohashes_visited,\
+            naive_fare_over_time, days_driven, naive_geohashes \
+                =train_rl_taxi.trainNetworkNeuralNetworkTaxicab(arg, training_length=1000000,
+                                    return_training_data =False, save_model= True)
+
+            # save your metrics
+            with open('loss_over_time', 'wb') as fp:
+                pickle.dump(loss_list, fp)
+            with open('rl_total_fare_time','wb') as fp:
+                pickle.dump(total_fare_received_over_time, fp)
+            with open('naive_fare_time','wb') as fp:
+                pickle.dump(naive_fare_over_time, fp)
+            with open('total_day','wb') as fp:
+                pickle.dump(days_driven, fp)
+        else:
+            train_rl_taxi.trainNetworkNeuralNetworkTaxicab(arg, training_length=1000000,
+                                return_training_data =False, save_model= False)
