@@ -38,7 +38,7 @@ FRAME_PER_ACTION = 1
 LEARNING_RATE = 1e-1
 
 
-class RLNYCTaxiCabLargeNetwork(object):
+class RLNYCTaxiCabLSTMNetwork(object):
     """Creates an mlp model with DQN to train on NYC taxi data from January 2016."""
 
     def __init__(self, list_of_unique_geohashes,list_of_time_index, list_of_geohash_index,
@@ -160,14 +160,14 @@ class RLNYCTaxiCabLargeNetwork(object):
 
 
 
-    def trainNetworkNeuralNetworkTaxicab(self, args, training_length=1000,
+    def trainNetworkNeuralNetworkTaxicab_LSTM(self, args, training_length=1000,
                                          return_training_data = False, save_model = False):
         # Code adapted from https://github.com/yanpanlau/Keras-FlappyBird/blob/master/qlearn.py
         """Train a DQN algorithm to learn how the best geohashes to go to throughout the day.
          Each geohash is about
         3803 x 3803 meters (~15 minutes of driving time to traverse in NYC).
         This algoirthm incorporates experience replay to stablize the training procedure
-        for the DWN algorithm. Due to the large size of the input features,
+        for the DQN algorithm. Due to the large size of the input features,
         you need to train for a long time (1-2million iterations) """
 
         self.return_training_data = return_training_data

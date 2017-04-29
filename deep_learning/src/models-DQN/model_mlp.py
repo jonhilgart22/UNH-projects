@@ -31,7 +31,7 @@ OBSERVATION = 10000. # timesteps to observe before training
 EXPLORE = 3000000 # frames over which to anneal epsilon
 FINAL_EPSILON = 0.001 # final value of epsilon
 INITIAL_EPSILON = 0.1 # starting value of epsilon
-TRAINING_EPSILON = .1
+TRAINING_EPSILON = .0001
 REPLAY_MEMORY = 50000 # number of previous transitions to remember
 BATCH = 32 # size of minibatch
 FRAME_PER_ACTION = 1
@@ -39,7 +39,8 @@ LEARNING_RATE = 1e-1
 
 
 class RLNYCTaxiCab(object):
-    """Creates an mlp model with DQN to train on NYC taxi data from January 2016."""
+    """Creates an mlp model with DQN to train on NYC taxi data from January 2016.
+    Uses a MLP model with DQN."""
 
     def __init__(self, list_of_unique_geohashes,list_of_time_index, list_of_geohash_index,
                 list_of_inverse_heohash_index, final_data_structure, return_metrics=False):
@@ -159,7 +160,7 @@ class RLNYCTaxiCab(object):
          Each geohash is about
         3803 x 3803 meters (~15 minutes of driving time to traverse in NYC).
         This algoirthm incorporates experience replay to stablize the training procedure
-        for the DWN algorithm. Due to the large size of the input features,
+        for the DQN algorithm. Due to the large size of the input features,
         you need to train for a long time (1-2million iterations) """
 
         self.return_training_data = return_training_data
