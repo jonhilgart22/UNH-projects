@@ -10,10 +10,12 @@ from hyperas import optim
 from keras.models import model_from_json
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten
-from keras.layers.convolutional import Convolution2D, MaxPooling2D
+from keras.layers import LSTM
 from keras.optimizers import SGD , Adam
 import tensorflow as tf
+import keras.backend as K
 from hyperas.distributions import choice, uniform, conditional
+from keras.layers.normalization import BatchNormalization
 __author__ = 'JOnathan Hilgart'
 
 
@@ -25,12 +27,14 @@ def data():
     won't reload data for each evaluation run.
     """
     import numpy as np
-    x = np.load('training_x.npy')
-    y = np.load('training_y.npy')
-    x_train = x[:15000,:]
-    y_train = y[:15000,:]
-    x_test = x[15000:,:]
-    y_test = y[15000:,:]
+    x = np.load('training_x')
+    x = x.reshape(1,50001,2)
+    y = np.load('training_y')
+    y = y.reshape(1,50001, 9)
+    x_train = x[:, :25000,:]
+    y_train = y[:, :25000,:]
+    x_test = x[:, 25001:,:]
+    y_test = y[:, 25001:,:]
     return x_train, y_train, x_test, y_test
 
 
@@ -45,41 +49,64 @@ def model(x_train, y_train, x_test, y_test):
     The last one is optional, though recommended, namely:
         - model: specify the model just created so that we can later use it again.
     """
-    model_mlp = Sequential()
-    model_mlp.add(Dense({{choice([32, 64,126, 256, 512, 1024])}},
-                        activation='relu', input_shape= (2,)))
-    model_mlp.add(Dropout({{uniform(0, .5)}}))
-    model_mlp.add(Dense({{choice([32, 64, 126, 256, 512, 1024])}}))
-    model_mlp.add(Activation({{choice(['relu', 'sigmoid'])}}))
-    model_mlp.add(Dropout({{uniform(0, .5)}}))
-    model_mlp.add(Dense({{choice([32, 64, 126, 256, 512, 1024])}}))
-    model_mlp.add(Activation({{choice(['relu', 'sigmoid'])}}))
-    model_mlp.add(Dropout({{uniform(0, .5)}}))
-    model_mlp.add(Dense({{choice([32, 64, 126, 256, 512, 1024])}}))
-    model_mlp.add(Activation({{choice(['relu', 'sigmoid'])}}))
-    model_mlp.add(Dropout({{uniform(0, .5)}}))
-    model_mlp.add(Dense(9))
-    model_mlp.add(Activation({{choice(['softmax','linear'])}}))
-    model_mlp.compile(loss={{choice(['categorical_crossentropy','mse'])}}, metrics=['accuracy'],
-                  optimizer={{choice(['rmsprop', 'adam', 'sgd'])}})
+    model_lstm = Sequential()
+    model_lstm .add(LSTM({{choice([64, 126, 256, 512, 1024])}}, dropout={{uniform(0, .5)}},
+                         batch_input_shape=(1,x_train.shape[1], 2),
+                     recurrent_dropout={{uniform(0, .5)}},return_sequences = True))
+    model_lstm.add(BatchNormalization())
+
+    if conditional({{choice(['one','two','three', 'four'])}}) == 'one':
+        pass
+    elif conditional({{choice(['one','two','three', 'four'])}}) == 'two':
+        model_lstm .add(LSTM({{choice([64, 126, 256, 512, 1024])}}, dropout={{uniform(0, .5)}},
+                     recurrent_dropout={{uniform(0, .5)}},
+                     return_sequences = True))
+        model_lstm.add(BatchNormalization())
+    elif conditional({{choice(['one','two','three', 'four'])}}) == 'three':
+        model_lstm .add(LSTM({{choice([64, 126, 256, 512, 1024])}}, dropout={{uniform(0, .5)}},
+                     recurrent_dropout={{uniform(0, .5)}},
+                     return_sequences = True))
+        model_lstm.add(BatchNormalization())
+        model_lstm.add(Dense({{choice([126, 256, 512, 1024])}}))
+        model_lstm.add(BatchNormalization())
+        model_lstm.add(Activation({{choice(['relu','tanh','sigmoid'])}}))
+    elif conditional({{choice(['one','two','three', 'four'])}}) == 'four':
+        model_lstm .add(LSTM({{choice([64, 126, 256, 512, 1024])}}, dropout={{uniform(0, .5)}},
+                     recurrent_dropout={{uniform(0, .5)}},
+                     return_sequences = True))
+        model_lstm.add(BatchNormalization())
+        model_lstm.add(Dense({{choice([126, 256, 512, 1024])}}))
+        model_lstm.add(BatchNormalization())
+        model_lstm.add(Activation({{choice(['relu','tanh','sigmoid'])}}))
+        model_lstm.add(Dense({{choice([126, 256, 512, 1024])}}, activation='relu'))
+        model_lstm.add(BatchNormalization())
+        model_lstm.add(Activation({{choice(['relu','tanh','sigmoid'])}}))
+
+
+    model_lstm .add(Dense(9, activation='linear',name='dense_output'))
+    model_lstm .compile(loss='mean_squared_error', optimizer={{choice([
+        'adam','sgd','rmsprop'])}})
+    model_lstm.summary()
 
 
 
-    model_mlp.fit(x_train, y_train,
-              batch_size={{choice([16, 32, 64, 128])}},
-              epochs=50,
-              verbose=2,
+    model_lstm.fit(x_train, y_train,
+              batch_size=1,
+              epochs=1,
+              verbose=1,
               validation_data=(x_test, y_test))
-    score, acc = model_mlp.evaluate(x_test, y_test, verbose=0)
+    acc = model_lstm.evaluate(x_test, y_test, verbose=0)
     print('Test accuracy:', acc)
-    return {'loss': -acc, 'status': STATUS_OK, 'model': model_mlp}
+    return {'loss': -acc, 'status': STATUS_OK, 'model': model_lstm}
 
 
 if __name__ == '__main__':
+    import gc; gc.collect()
+
     best_run, best_model = optim.minimize(model=model,
                                           data=data,
                                           algo=tpe.suggest,
-                                          max_evals=2,
+                                          max_evals=20,
                                           trials=Trials())
     X_train, Y_train, X_test, Y_test = data()
     print("Evalutation of best performing model:")

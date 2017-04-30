@@ -76,13 +76,16 @@ def model(x_train, y_train, x_test, y_test):
 
 
 if __name__ == '__main__':
-    best_run, best_model = optim.minimize(model=model,
-                                          data=data,
-                                          algo=tpe.suggest,
-                                          max_evals=2,
-                                          trials=Trials())
-    X_train, Y_train, X_test, Y_test = data()
-    print("Evalutation of best performing model:")
-    print(best_model.evaluate(X_test, Y_test))
-    print("Best performing model chosen hyper-parameters:")
-    print(best_run)
+    import gc; gc.collect()
+
+    with K.get_session(): ## TF session
+        best_run, best_model = optim.minimize(model=model,
+                                              data=data,
+                                              algo=tpe.suggest,
+                                              max_evals=2,
+                                              trials=Trials())
+        X_train, Y_train, X_test, Y_test = data()
+        print("Evalutation of best performing model:")
+        print(best_model.evaluate(X_test, Y_test))
+        print("Best performing model chosen hyper-parameters:")
+        print(best_run)

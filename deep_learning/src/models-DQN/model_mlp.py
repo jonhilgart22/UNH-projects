@@ -178,7 +178,7 @@ class RLNYCTaxiCab(object):
                          s_geohash]])
 
         if args['mode'] == 'Run':
-            OBSERVE = 100  #We keep observe, never train
+            OBSERVE = 1000  #We keep observe, never train
             epsilon = TRAINING_EPSILON
             print ("Now we load weight")
             self.model_mlp.load_weights(args['model_weights_load'])
