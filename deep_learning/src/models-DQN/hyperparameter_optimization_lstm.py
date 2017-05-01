@@ -27,14 +27,13 @@ def data():
     won't reload data for each evaluation run.
     """
     import numpy as np
-    x = np.load('training_x')
-    x = x.reshape(1,50001,2)
-    y = np.load('training_y')
-    y = y.reshape(1,50001, 9)
-    x_train = x[:, :25000,:]
-    y_train = y[:, :25000,:]
-    x_test = x[:, 25001:,:]
-    y_test = y[:, 25001:,:]
+    x = np.load('training_x.npy')
+    x = x.reshape(1,15000,2)
+    y = np.load('training_y.npy')
+    y = y.reshape(1,15000, 9)
+    x_train ,x_test  = np.split(x,2, axis=1)
+    y_train , y_test= np.split(y,2, axis=1)
+
     return x_train, y_train, x_test, y_test
 
 
@@ -54,15 +53,16 @@ def model(x_train, y_train, x_test, y_test):
                          batch_input_shape=(1,x_train.shape[1], 2),
                      recurrent_dropout={{uniform(0, .5)}},return_sequences = True))
     model_lstm.add(BatchNormalization())
+    condition = conditional({{choice(['one','two','three', 'four'])}})
 
-    if conditional({{choice(['one','two','three', 'four'])}}) == 'one':
+    if condition == 'one':
         pass
-    elif conditional({{choice(['one','two','three', 'four'])}}) == 'two':
+    elif condition == 'two':
         model_lstm .add(LSTM({{choice([64, 126, 256, 512, 1024])}}, dropout={{uniform(0, .5)}},
                      recurrent_dropout={{uniform(0, .5)}},
                      return_sequences = True))
         model_lstm.add(BatchNormalization())
-    elif conditional({{choice(['one','two','three', 'four'])}}) == 'three':
+    elif condition  == 'three':
         model_lstm .add(LSTM({{choice([64, 126, 256, 512, 1024])}}, dropout={{uniform(0, .5)}},
                      recurrent_dropout={{uniform(0, .5)}},
                      return_sequences = True))
@@ -70,7 +70,7 @@ def model(x_train, y_train, x_test, y_test):
         model_lstm.add(Dense({{choice([126, 256, 512, 1024])}}))
         model_lstm.add(BatchNormalization())
         model_lstm.add(Activation({{choice(['relu','tanh','sigmoid'])}}))
-    elif conditional({{choice(['one','two','three', 'four'])}}) == 'four':
+    elif condition == 'four':
         model_lstm .add(LSTM({{choice([64, 126, 256, 512, 1024])}}, dropout={{uniform(0, .5)}},
                      recurrent_dropout={{uniform(0, .5)}},
                      return_sequences = True))
@@ -84,8 +84,9 @@ def model(x_train, y_train, x_test, y_test):
 
 
     model_lstm .add(Dense(9, activation='linear',name='dense_output'))
-    model_lstm .compile(loss='mean_squared_error', optimizer={{choice([
-        'adam','sgd','rmsprop'])}})
+    adam = Adam(clipnorm=.5, clipvalue=.5)
+    model_lstm .compile(loss='mean_squared_error', optimizer=adam,
+                        metrics=['accuracy'])
     model_lstm.summary()
 
 
@@ -95,7 +96,8 @@ def model(x_train, y_train, x_test, y_test):
               epochs=1,
               verbose=1,
               validation_data=(x_test, y_test))
-    acc = model_lstm.evaluate(x_test, y_test, verbose=0)
+    loss, acc = model_lstm.evaluate(x_test, y_test, verbose=0)
+
     print('Test accuracy:', acc)
     return {'loss': -acc, 'status': STATUS_OK, 'model': model_lstm}
 
@@ -106,7 +108,7 @@ if __name__ == '__main__':
     best_run, best_model = optim.minimize(model=model,
                                           data=data,
                                           algo=tpe.suggest,
-                                          max_evals=20,
+                                          max_evals=40,
                                           trials=Trials())
     X_train, Y_train, X_test, Y_test = data()
     print("Evalutation of best performing model:")

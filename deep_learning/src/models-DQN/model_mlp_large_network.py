@@ -38,7 +38,7 @@ FRAME_PER_ACTION = 1
 LEARNING_RATE = 1e-1
 
 
-class RLNYCTaxiCabLSTMNetwork(object):
+class RLNYCTaxiCabLNetwork(object):
     """Creates an mlp model with DQN to train on NYC taxi data from January 2016."""
 
     def __init__(self, list_of_unique_geohashes,list_of_time_index, list_of_geohash_index,

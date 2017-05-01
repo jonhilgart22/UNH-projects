@@ -13,6 +13,7 @@ from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.optimizers import SGD , Adam
 import tensorflow as tf
 from keras.layers.normalization import BatchNormalization
+from keras.layers import LSTM
 import time
 import sys
 import pickle
@@ -38,8 +39,8 @@ FRAME_PER_ACTION = 1
 LEARNING_RATE = 1e-1
 
 
-class RLNYCTaxiCabLargeNetwork(object):
-    """Creates an mlp model with DQN to train on NYC taxi data from January 2016."""
+class RLNYCTaxiCabLargeNetwork_LSTM(object):
+    """Creates an lstm model with DQN to train on NYC taxi data from January 2016."""
 
     def __init__(self, list_of_unique_geohashes,list_of_time_index, list_of_geohash_index,
                 list_of_inverse_heohash_index, final_data_structure, return_metrics=False):
@@ -48,39 +49,30 @@ class RLNYCTaxiCabLargeNetwork(object):
         self. list_of_geohash_index =  list_of_geohash_index
         self.list_of_inverse_heohash_index = list_of_inverse_heohash_index
         self.final_data_structure = final_data_structure
-        self.build_mlp_model()
+        self.build_lstm_model()
         self.return_metrics = return_metrics
 
 
-    def build_mlp_model(self):
+    def build_lstm_model(self):
         """Build a simple MLP model.
         Input  time follwoed by the  geohash index. """
-        model_mlp = Sequential()
-        model_mlp.add(Dense(100, input_shape=(2,)))
-        model_mlp.add(BatchNormalization())
-        model_mlp.add(Activation('relu'))
-        model_mlp.add(Dropout(.3))
-        model_mlp.add(Dense(500))
-        model_mlp.add(BatchNormalization())
-        model_mlp.add(Activation('relu'))
-        model_mlp.add(Dropout(.3))
-        model_mlp.add(Dense(1000))
-        model_mlp.add(BatchNormalization())
-        model_mlp.add(Activation('relu'))
-        model_mlp.add(Dropout(.3))
-        model_mlp.add(Dense(5000))
-        model_mlp.add(BatchNormalization())
-        model_mlp.add(Activation('relu'))
-        model_mlp.add(Dropout(.3))
-        model_mlp.add(Dense(10000))
-        model_mlp.add(BatchNormalization())
-        model_mlp.add(Activation('relu'))
-        model_mlp.add(Dropout(.3))
-        model_mlp.add(Dense(9, activation='linear')) ## predict which geohash to move to next
-        adam = Adam(lr=LEARNING_RATE)
-        model_mlp.compile(loss='mse',optimizer=adam)
-
-        self.model_mlp = model_mlp
+        model_lstm = Sequential()
+        model_lstm .add(LSTM( 512, dropout=.24,
+                             batch_input_shape=(1,None, 2),
+                         recurrent_dropout=.24,return_sequences = True))
+        model_lstm.add(BatchNormalization())
+        model_lstm .add(LSTM(1024, dropout=.18,
+                 recurrent_dropout=.18,
+                 return_sequences = True))
+        model_lstm.add(BatchNormalization())
+        model_lstm.add(Dense(512))
+        model_lstm.add(BatchNormalization())
+        model_lstm.add(Activation('sigmoid'))
+        model_lstm .add(Dense(9, activation='linear',name='dense_output'))
+        adam = Adam(clipnorm=.5, clipvalue=.5)
+        model_lstm .compile(loss='mean_squared_error', optimizer=adam,
+                            metrics=['accuracy'])
+        self.model_lstm = model_lstm
 
     def NaiveApproach(self, s_time_, s_geohash_,starting_geo, input_fare_list = None, historic_current_fare = None):
         """Assign the same probability to every state and keep track of the total fare received, total fare over time,
@@ -160,7 +152,7 @@ class RLNYCTaxiCabLargeNetwork(object):
 
 
 
-    def trainNetworkNeuralNetworkTaxicab(self, args, training_length=1000,
+    def trainNetworkNeuralNetworkTaxicab_LSTM(self, args, training_length=1000,
                                          return_training_data = False, save_model = False):
         # Code adapted from https://github.com/yanpanlau/Keras-FlappyBird/blob/master/qlearn.py
         """Train a DQN algorithm to learn how the best geohashes to go to throughout the day.
@@ -181,16 +173,16 @@ class RLNYCTaxiCabLargeNetwork(object):
         s_time = np.random.choice(self.list_of_time_index)
         s_geohash = self.list_of_geohash_index[starting_geohash]
 
-        s_t = np.array([[s_time,
-                         s_geohash]])
+        s_t = np.array([[[s_time,
+                         s_geohash]]])
 
         if args['mode'] == 'Run':
             OBSERVE = 10000  #We keep observe, never train
             epsilon = TRAINING_EPSILON
             print ("Now we load weight")
-            self.model_mlp.load_weights(args['model_weights_load'])
+            self.model_lstm.load_weights(args['model_weights_load'])
             adam = Adam(lr=LEARNING_RATE)
-            self.model_mlp.compile(loss='mse',optimizer=adam)
+            self.model_lstm.compile(loss='mse',optimizer=adam)
             print ("Weight load successfully")
         else:                       #We go to training mode
             OBSERVE = OBSERVATION
@@ -230,7 +222,8 @@ class RLNYCTaxiCabLargeNetwork(object):
                     a_t[action_index] = 1
                 else:
                     #print("------------Predicted Action___________")
-                    q = self.model_mlp.predict(s_t)       #input the time followed by the geohash index
+
+                    q = self.model_lstm.predict(s_t)       #input the time followed by the geohash index
                     max_Q = np.argmax(q)  # find the position of the highest probability (which direction to go in)
                     action_index = max_Q
                     #print('Action {}'.format(action_index))
@@ -334,18 +327,26 @@ class RLNYCTaxiCabLargeNetwork(object):
                         inputs[i,col] = s_time_t   #Save the time and geohash in the inputs to the model
                         inputs[i,col+1] = s_geohash_t
 
-                    state_t = np.array([[s_time_t, s_geohash_t]])
-                    state_t1 = np.array([[s_time_t1,s_geohash_t1]])
+                    state_t = np.array([[s_time_t, s_geohash_t]]).reshape(1,1,2)
+                    state_t1 = np.array([[s_time_t1,s_geohash_t1]]).reshape(1,1,2)
 
-                    targets[i] = self.model_mlp.predict(state_t)  # update entire row
-                    Q_sa = self.model_mlp.predict(state_t1)
+                    targets[i] = self.model_lstm.predict(state_t)  # update entire row
+                    Q_sa = self.model_lstm.predict(state_t1)
                     #print(Q_sa, ' Q function for a given state')
                     if terminal==1: ## The day ended, pick a new starting geohash and time
                         targets[i, action_t] = reward_t
 
                     else:
                         targets[i, action_t] = reward_t + GAMMA * np.max(Q_sa) ## exponential discounting for each memory
-                loss += self.model_mlp.train_on_batch(inputs, targets)
+                print(inputs,'inputs')
+                print(inputs.shape,'inputs shape')
+                print()
+                print(targets,'targets')
+                print(targets.shape,'tarets shape')
+                print()
+                inputs = inputs.reshape(1,BATCH,2)
+                targets = targets.reshape(1,BATCH,9)
+                loss += self.model_lstm.train_on_batch(inputs, targets)
                 loss_list.append(loss)
                 if self.return_metrics == True:
                     # only record fares once we start training
@@ -364,9 +365,9 @@ class RLNYCTaxiCabLargeNetwork(object):
             if save_model == True:
                 if t % 1000 == 0:
                     print("Now we save model")
-                    self.model_mlp.save_weights(args['save_model_weights'], overwrite=True)
-                    with open("model_large.json", "w") as outfile:
-                        json.dump(self.model_mlp.to_json(), outfile)
+                    self.model_lstm.save_weights(args['save_model_weights'], overwrite=True)
+                    with open("model_lstm.json", "w") as outfile:
+                        json.dump(self.model_lstm.to_json(), outfile)
 
             if t % 500 == 0:
                 print("TIMESTEP", t, "/ STATE", state, \
@@ -380,9 +381,9 @@ class RLNYCTaxiCabLargeNetwork(object):
             if t ==training_length: ### end training
                 if self.return_metrics == True and save_model == True:
                     print("Now we save model")
-                    self.model_mlp.save_weights(args['save_model_weights'], overwrite=True)
-                    with open("model.json", "w") as outfile:
-                        json.dump(self.model_mlp.to_json(), outfile)
+                    self.model_lstm.save_weights(args['save_model_weights'], overwrite=True)
+                    with open("model_lstm.json", "w") as outfile:
+                        json.dump(self.model_lstm.to_json(), outfile)
                     return loss_list, total_fare_received_over_time, \
                         list_of_geohashes_visited,  total_naive_fare_over_time,\
                         total_days_driven, list_of_naive_geohashes_visited
@@ -394,9 +395,9 @@ class RLNYCTaxiCabLargeNetwork(object):
                     return self.training_data_X, self.training_data_y
                 elif save_model == True:
                     print("Now we save model")
-                    self.model_mlp.save_weights(args['save_model_weights'], overwrite=True)
-                    with open("model_large.json", "w") as outfile:
-                        json.dump(self.model_mlp.to_json(), outfile)
+                    self.model_lstm.save_weights(args['save_model_weights'], overwrite=True)
+                    with open("model_lstm.json", "w") as outfile:
+                        json.dump(self.model_lstm.to_json(), outfile)
                     break
                 else:# something weird happened
                     break
@@ -441,35 +442,33 @@ if __name__ =="__main__":
         taxi_yellowcab_df, final_data_structure= make_dataset.main()
         ## the the data structures needed for the RL calss
         list_of_output_predictions_to_direction, list_of_unique_geohashes, \
-            list_of_geohash_index, list_of_time_index,list_of_inverse_heohash_index\
+            list_of_geohash_index, list_of_time_index, list_of_inverse_heohash_index\
              = data_attributes(taxi_yellowcab_df)
         #
-        arg = {'mode':'Test','save_model':True,'model_weights_load':'model_lstm.h5',
-               'save_model_weights':'lstm_weights.h5'}
-        train_rl_taxi = RLNYCTaxiCabLargeNetwork(list_of_unique_geohashes,list_of_time_index,list_of_geohash_index,\
-                list_of_inverse_heohash_index, final_data_structure, return_metrics=False
+        arg = {'mode':'Test','save_model':True,'model_weights_load':'model_lstm_1mil.h5',
+               'save_model_weights':'lstm_weight_1mils.h5'}
+        train_rl_taxi = RLNYCTaxiCabLargeNetwork_LSTM(list_of_unique_geohashes,list_of_time_index, \
+                                                      list_of_geohash_index,\
+                list_of_inverse_heohash_index, final_data_structure, return_metrics=True)
 
         if arg['save_model']==True:
-            # loss_list, total_fare_received_over_time, list_of_geohashes_visited,\
-            # naive_fare_over_time, days_driven, naive_geohashes \
-            #     =train_rl_taxi.trainNetworkNeuralNetworkTaxicab(arg, training_length=1000000,
-            #                         return_training_data =True, save_model= True)
-            training_x, training_y =\
-                train_rl_taxi.trainNetworkNeuralNetworkTaxicab(arg, training_length=50000,
-                                    return_training_data =True, save_model= True)
+            loss_list, total_fare_received_over_time, list_of_geohashes_visited,\
+            naive_fare_over_time, days_driven, naive_geohashes \
+                =train_rl_taxi.trainNetworkNeuralNetworkTaxicab_LSTM(arg, training_length=1000000,
+                            return_training_data = False, save_model= True)
 
-            with open('training_x','wb') as fp:
-                pickle.dump(training_x, fp)
-            with open('training_y','wb') as fp:
-                pickle.dump(training_y, fp)
+            # with open('training_x','wb') as fp:
+            #     pickle.dump(training_x, fp)
+            # with open('training_y','wb') as fp:
+            #     pickle.dump(training_y, fp)
             # # save your metrics
-            # with open('loss_over_time_large', 'wb') as fp:
-            #     pickle.dump(loss_list, fp)
-            # with open('rl_total_fare_time_large','wb') as fp:
-            #     pickle.dump(total_fare_received_over_time, fp)
-            # with open('naive_fare_time_large','wb') as fp:
-            #     pickle.dump(naive_fare_over_time, fp)
-            # with open('total_day_large','wb') as fp:
+            with open('loss_over_time_lstm_1mil', 'wb') as fp:
+                pickle.dump(loss_list, fp)
+            with open('rl_total_fare_time_lstm_1mil','wb') as fp:
+                pickle.dump(total_fare_received_over_time, fp)
+            with open('naive_fare_time_lstm_1mil','wb') as fp:
+                pickle.dump(naive_fare_over_time, fp)
+            with open('total_day_lstm_1mil','wb') as fp:
                 pickle.dump(days_driven, fp)
         else:
             train_rl_taxi.trainNetworkNeuralNetworkTaxicab(arg, training_length=1000000,
