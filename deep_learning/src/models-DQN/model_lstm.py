@@ -29,12 +29,12 @@ __author__ = 'Jonathan Hilgart'
 ACTIONS = 9 # number of valid actions
 GAMMA = 0.99 # decay rate of past observations
 OBSERVATION = 10000. # timesteps to observe before training
-EXPLORE = 3000000 # frames over which to anneal epsilon
+EXPLORE = 300000 # frames over which to anneal epsilon
 FINAL_EPSILON = 0.001 # final value of epsilon
 INITIAL_EPSILON = 0.1 # starting value of epsilon
 TRAINING_EPSILON = .1
 REPLAY_MEMORY = 50000 # number of previous transitions to remember
-BATCH = 32 # size of minibatch
+BATCH = 64 # size of minibatch
 FRAME_PER_ACTION = 1
 LEARNING_RATE = 1e-1
 
@@ -70,12 +70,13 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
         model_lstm.add(Activation('sigmoid'))
         model_lstm .add(Dense(9, activation='linear',name='dense_output'))
         adam = Adam(clipnorm=.5, clipvalue=.5)
-        model_lstm .compile(loss='mean_squared_error', optimizer=adam,
-                            metrics=['accuracy'])
+        model_lstm .compile(loss='mean_squared_error', optimizer=adam)
         self.model_lstm = model_lstm
 
-    def NaiveApproach(self, s_time_, s_geohash_,starting_geo, input_fare_list = None, historic_current_fare = None):
-        """Assign the same probability to every state and keep track of the total fare received, total fare over time,
+    def NaiveApproach(self, s_time_, s_geohash_,starting_geo, input_fare_list = None,
+                      historic_current_fare = None):
+        """Assign the same probability to every state and keep track of the total fare received,
+         total fare over time,
         and geohashes visited"""
 
         ## parameters to track where we are and at what time
@@ -177,7 +178,7 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
                          s_geohash]]])
 
         if args['mode'] == 'Run':
-            OBSERVE = 10000  #We keep observe, never train
+            OBSERVE = 50000  #We keep observe, never train
             epsilon = TRAINING_EPSILON
             print ("Now we load weight")
             self.model_lstm.load_weights(args['model_weights_load'])
@@ -311,7 +312,7 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
                 minibatch = random.sample(D, BATCH)
                 inputs = []
 
-                inputs = np.zeros((BATCH, s_t.shape[1]))   #16, 2
+                inputs = np.zeros((BATCH, 2))   #16, 2
                 targets = np.zeros((inputs.shape[0], ACTIONS))       #16, 9
                 #Now we do the experience replay
                 for i in range(0, len(minibatch)): # 0 -15 for batch 16
@@ -332,21 +333,16 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
 
                     targets[i] = self.model_lstm.predict(state_t)  # update entire row
                     Q_sa = self.model_lstm.predict(state_t1)
-                    #print(Q_sa, ' Q function for a given state')
                     if terminal==1: ## The day ended, pick a new starting geohash and time
                         targets[i, action_t] = reward_t
 
                     else:
                         targets[i, action_t] = reward_t + GAMMA * np.max(Q_sa) ## exponential discounting for each memory
-                print(inputs,'inputs')
-                print(inputs.shape,'inputs shape')
-                print()
-                print(targets,'targets')
-                print(targets.shape,'tarets shape')
-                print()
                 inputs = inputs.reshape(1,BATCH,2)
                 targets = targets.reshape(1,BATCH,9)
+
                 loss += self.model_lstm.train_on_batch(inputs, targets)
+
                 loss_list.append(loss)
                 if self.return_metrics == True:
                     # only record fares once we start training
@@ -445,8 +441,8 @@ if __name__ =="__main__":
             list_of_geohash_index, list_of_time_index, list_of_inverse_heohash_index\
              = data_attributes(taxi_yellowcab_df)
         #
-        arg = {'mode':'Test','save_model':True,'model_weights_load':'model_lstm_1mil.h5',
-               'save_model_weights':'lstm_weight_1mils.h5'}
+        arg = {'mode':'Run','save_model':True,'model_weights_load':'lstm_weight_50k.h5',
+               'save_model_weights':'lstm_weight_1mil.h5'}
         train_rl_taxi = RLNYCTaxiCabLargeNetwork_LSTM(list_of_unique_geohashes,list_of_time_index, \
                                                       list_of_geohash_index,\
                 list_of_inverse_heohash_index, final_data_structure, return_metrics=True)
