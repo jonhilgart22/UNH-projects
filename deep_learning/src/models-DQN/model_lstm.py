@@ -17,9 +17,15 @@ from keras.layers import LSTM
 import time
 import sys
 import pickle
-import auxiliary_functions, make_dataset
+#import auxiliary_functions, make_dataset
 from py_geohash_any import geohash as gh
 from keras import backend as K
+sys.path.insert(0, '../data')
+import auxiliary_functions, make_dataset
+from auxiliary_functions import convert_miles_to_minutes_nyc, list_of_output_predictions_to_direction
+#sys.path.insert(0, '../src/models-DQN')
+#from model_mlp import RLNYCTaxiCab
+
 from auxiliary_functions import convert_miles_to_minutes_nyc, \
     list_of_output_predictions_to_direction
 __author__ = 'Jonathan Hilgart'
@@ -122,11 +128,11 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
                 fare_t = 0 ## no information so the fare = 0
                 s_time1 = s_time+10 ## assume this took ten minutes
             else:
-                r_t =  possible_rewards[np.random.randint(0,len(possible_rewards))][2] # get the ratio of fare / trip time
-                fare_t = possible_rewards[np.random.randint(0,len(possible_rewards))][0]
+                reward_option = np.random.randint(0,len(possible_rewards))
+                r_t =  possible_rewards[reward_option][2] # get the ratio of fare / trip time
+                fare_t = possible_rewards[reward_option][0]
                 # get the trip length
-                s_time1 = s_time + possible_rewards[np.random.randint(0,len(possible_rewards))][1]
-                #r_t = np.random.choice(possible_rewards)
+                s_time1 = s_time + possible_rewards[reward_option][1]
             s_geohash1 = self.list_of_geohash_index[new_geohash]
             # store the transition in D
             if s_time1 <= 2350: # The last possible time for a trip
@@ -134,11 +140,6 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
                  ### get the naive implementation per day
             else: # the day is over, pick a new starting geohash and time
                 break # the day is over
-
-#                 terminal = 1
-
-#                 s_time1 = np.random.choice(self.list_of_time_index)
-#                 s_geohash1 =   self.list_of_geohash_index[np.random.choice(self.list_of_unique_geohashes)]
 
             total_fare += fare_t
             total_fare_over_time.append(total_fare)
@@ -160,7 +161,7 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
          Each geohash is about
         3803 x 3803 meters (~15 minutes of driving time to traverse in NYC).
         This algoirthm incorporates experience replay to stablize the training procedure
-        for the DWN algorithm. Due to the large size of the input features,
+        for the DQN algorithm. Due to the large size of the input features,
         you need to train for a long time (1-2million iterations) """
 
         self.return_training_data = return_training_data
@@ -223,11 +224,9 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
                     a_t[action_index] = 1
                 else:
                     #print("------------Predicted Action___________")
-
                     q = self.model_lstm.predict(s_t)       #input the time followed by the geohash index
                     max_Q = np.argmax(q)  # find the position of the highest probability (which direction to go in)
                     action_index = max_Q
-                    #print('Action {}'.format(action_index))
                     a_t[max_Q] = 1
 
             #We reduced the epsilon gradually to take more random actions
@@ -259,11 +258,12 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
                 fare_t = 0 ## no information so the fare = 0
                 s_time1 = s_time+10 ## assume this took ten minutes
             else:
-                r_t =  possible_rewards[np.random.randint(0,len(possible_rewards))][2] # get the ratio of fare / trip time
-                fare_t = possible_rewards[np.random.randint(0,len(possible_rewards))][0]
+                reward_option = np.random.randint(0,len(possible_rewards))
+                r_t =  possible_rewards[reward_option][2] # get the ratio of fare / trip time
+                fare_t = possible_rewards[reward_option][0]
                 # get the trip length
-                s_time1 = s_time + possible_rewards[np.random.randint(0,len(possible_rewards))][1]
-                #r_t = np.random.choice(possible_rewards)
+                #print(possible_rewards[np.random.randint(0,len(possible_rewards))][1],'trip time in minutes')
+                s_time1 = s_time + possible_rewards[reward_option][1]
             s_geohash1 = self.list_of_geohash_index[new_geohash]
 
             # store the transition in D
@@ -441,8 +441,8 @@ if __name__ =="__main__":
             list_of_geohash_index, list_of_time_index, list_of_inverse_heohash_index\
              = data_attributes(taxi_yellowcab_df)
         #
-        arg = {'mode':'Run','save_model':True,'model_weights_load':'lstm_weight_50k.h5',
-               'save_model_weights':'lstm_weight_1mil.h5'}
+        arg = {'mode':'Test','save_model':True,'model_weights_load':'llstm_weight_60k.h5',
+               'save_model_weights':'lstm_weight_200k.h5'}
         train_rl_taxi = RLNYCTaxiCabLargeNetwork_LSTM(list_of_unique_geohashes,list_of_time_index, \
                                                       list_of_geohash_index,\
                 list_of_inverse_heohash_index, final_data_structure, return_metrics=True)
@@ -450,8 +450,9 @@ if __name__ =="__main__":
         if arg['save_model']==True:
             loss_list, total_fare_received_over_time, list_of_geohashes_visited,\
             naive_fare_over_time, days_driven, naive_geohashes \
-                =train_rl_taxi.trainNetworkNeuralNetworkTaxicab_LSTM(arg, training_length=1000000,
-                            return_training_data = False, save_model= True)
+                =train_rl_taxi.trainNetworkNeuralNetworkTaxicab_LSTM(arg, training_length=200000,
+                            return_training_data = False,
+                            save_model= arg ['save_model'])
 
             # with open('training_x','wb') as fp:
             #     pickle.dump(training_x, fp)
@@ -467,5 +468,6 @@ if __name__ =="__main__":
             with open('total_day_lstm_1mil','wb') as fp:
                 pickle.dump(days_driven, fp)
         else:
-            train_rl_taxi.trainNetworkNeuralNetworkTaxicab(arg, training_length=1000000,
-                                return_training_data =False, save_model= False)
+            train_rl_taxi.trainNetworkNeuralNetworkTaxicab_LSTM(arg, training_length=1000000,
+                                return_training_data =False,
+                                save_model= arg ['save_model'])

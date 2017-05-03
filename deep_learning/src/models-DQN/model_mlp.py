@@ -122,11 +122,12 @@ class RLNYCTaxiCab(object):
                 fare_t = 0 ## no information so the fare = 0
                 s_time1 = s_time+10 ## assume this took ten minutes
             else:
-                r_t =  possible_rewards[np.random.randint(0,len(possible_rewards))][2] # get the ratio of fare / trip time
-                fare_t = possible_rewards[np.random.randint(0,len(possible_rewards))][0]
+                reward_option = np.random.randint(0,len(possible_rewards))
+                r_t =  possible_rewards[reward_option][2] # get the ratio of fare / trip time
+                fare_t = possible_rewards[reward_option][0]
                 # get the trip length
-                s_time1 = s_time + possible_rewards[np.random.randint(0,len(possible_rewards))][1]
-                #r_t = np.random.choice(possible_rewards)
+                #print(possible_rewards[np.random.randint(0,len(possible_rewards))][1],'trip time in minutes')
+                s_time1 = s_time + possible_rewards[reward_option][1]
             s_geohash1 = self.list_of_geohash_index[new_geohash]
             # store the transition in D
             if s_time1 <= 2350: # The last possible time for a trip
@@ -135,10 +136,6 @@ class RLNYCTaxiCab(object):
             else: # the day is over, pick a new starting geohash and time
                 break # the day is over
 
-#                 terminal = 1
-
-#                 s_time1 = np.random.choice(self.list_of_time_index)
-#                 s_geohash1 =   self.list_of_geohash_index[np.random.choice(self.list_of_unique_geohashes)]
 
             total_fare += fare_t
             total_fare_over_time.append(total_fare)
@@ -169,6 +166,7 @@ class RLNYCTaxiCab(object):
 
         # get the first state by randomlly choosing a geohash to start at and random time to start at
         # Assume that the first state has no reward associated with it
+
         # Over multiple steps, starting geohash becomes the previous geohash we visited
         starting_geohash = np.random.choice(self.list_of_unique_geohashes)
         s_time = np.random.choice(self.list_of_time_index)
