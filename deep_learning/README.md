@@ -21,25 +21,27 @@ Project Organization
     │
     ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
     │
-    ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-    │   └── figures        <- Generated graphics and figures to be used in reporting
+    ├── figures            <- Generated graphics of each algorithms', and a naive approach's,
+    |                         performance in NYC over time.
     │
     ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
     │                         generated with `pip freeze > requirements.txt`
     │
-    ├── src                <- Source code for use in this project.
-    │   ├── __init__.py    <- Makes src a Python module
+    ├── src                <- Source code for use in this project. Includes code for the models
+    |   |                     build with DQN and Actor Critic, hyperparameter selection, and
+    |   |                     visualizations.
     │   │
     │   ├── data           <- Scripts to download or generate data
     │   │   └── make_dataset.py   <- Uses a preprocessed .csv file to load into memory with auxiliary function (below)
     |   |   |__ auxiliary_functions.py <- functions to compute geohashes from latitudes. General data cleaning scripts
     │   │
     │   │
-    │   ├── models         <- Scripts to train models and then use trained models to make
-    │   │   │                 predictions. Also, includes training data.
+    │   ├── models-DQN         <- Scripts to train models and then use trained models to make
+    │   │   │                 predictions. Also, includes training data. For the DQN algorithm.
     │   │   ├── predict_model.py
     │   │   └── train_model.py    <- Train the RL algorithm
-    |   |   |_ hyperparameter_optimization.py <- hyperparameter selection for the MLP model for our RL algorithm
+    |   |   |_ hyperparameter_optimization_mlp.py <- hyperparameter selection for the MLP model for our RL algorithm
+    |   |   |_ hyperparameter_optimization_lstm.py <- hyperparameter selection for the LSTM model
     │   │
     │   └── visualization  <- Scripts to create exploratory and results oriented visualizations. Additional images showing the loss and fares earned over time.
     │       └── plotting_geohashes.py   <- A script to see a heatmap of fares over time for January for NYC taxis

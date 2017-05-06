@@ -9,7 +9,6 @@ from collections import deque
 import time
 from keras.layers.normalization import BatchNormalization
 import json
-from IPython.display import SVG
 from collections import defaultdict
 from keras.models import model_from_json
 from keras.models import Sequential
@@ -21,16 +20,16 @@ import tensorflow as tf
 import pickle
 from operator import itemgetter
 import sys
-sys.path.insert(0, '../data/') ## for running on local
+#sys.path.insert(0, '../data/') ## for running on local
 import auxiliary_functions, make_dataset
 from auxiliary_functions import convert_miles_to_minutes_nyc, list_of_output_predictions_to_direction
-__author__= ' Jonathan Hilgart'
+__author__ = ' Jonathan Hilgart'
 
 
 
 class ActorCriticNYCMLP(object):
 
-    """Train an actor critic model to maximize revenue. for a NYC taxi driver.\
+    """Train an actor critic model to maximize revenue for a NYC taxi driver.\
     Code inspired from http://www.rage.net/~greg/2016-07-05-ActorCritic-with-OpenAI-Gym.htmlCode """
 
     def __init__(self, args, ACTION_SPACE, OBSERVATION_SPACE,
@@ -92,6 +91,9 @@ class ActorCriticNYCMLP(object):
         adam = Adam(clipnorm=1.0)
         model_mlp.compile(loss='mse', optimizer=adam)
         self.critic_model = model_mlp
+
+
+
 
     def NaiveApproach(self, s_time_, s_geohash_,starting_geo, input_fare_list = None,
                       historic_current_fare = None):
@@ -166,12 +168,22 @@ class ActorCriticNYCMLP(object):
         return total_fare, total_fare_over_time, list_of_geohashes_visited
 
 
-    def trainer(self, n_days=10, batchSize=64,
-                gamma=0.975, epsilon=1, min_epsilon=0.1, save_model=True,
-                buffer=10000):
+    def trainer(self, n_days=10, batchSize=16,
+                gamma=0.975, epsilon=1, min_epsilon=0.1,
+                buffer_size=50000):
         """Train a Actor Critic model for a given number of days.
         Code inspired from http://www.rage.net/~greg/2016-07-05-ActorCritic-with-OpenAI-Gym.html
-        Returns actor_loss,critic_loss, total_fare_over_time, daily_fare
+        Returns actor_loss,critic_loss, total_fare_over_time, daily_fare.
+
+        Most important parts of the Actor Critic model are
+            1) Critic predicts a value of state A
+            2) Actor makes a move from state A to state B
+            3) Critic predicts a value of state B
+            4) The value for state B is given by the temporal difference between
+            A and B from the critic.
+            5) This temporal differen is used by the actor for training(i.e. if it
+            is a large value, the network will encourage the actor to take this move
+            more often)
         """
 
         # Replay buffers
@@ -190,9 +202,23 @@ class ActorCriticNYCMLP(object):
         # naive implementation results
         total_naive_fare = 0
         total_naive_fare_over_time = []
-        list_of_naive_geohashes_visited = []
+        list_of_geohashes_visited_actor_critic = []
         naive_geohashes_visited = []
-
+        # load existing weights
+        if self.args['mode']=='Test':
+            try:
+                print ("Now we load weight")
+                self.actor_model.load_weights(args['model_weights_load_actor'])
+                adam = Adam()
+                self.actor_model.compile(loss='mse',optimizer=adam)
+                self.critic_model.load_weights(args['model_weights_load_critic'])
+                adam = Adam()
+                print ("Weight load successfully")
+            except Exception as e:
+                print('We could not find weights')
+                print(e)
+        else: ## we will train the model weights
+            pass
 
         for i in range(n_days):
             wins = 0
@@ -207,7 +233,8 @@ class ActorCriticNYCMLP(object):
             s_time = np.random.choice(list_of_time_index)
             s_geohash = list_of_geohash_index[starting_geohash]
             a_t = np.zeros([ACTIONS])
-            ## start the naive appraoch
+            # start the naive appraoch at the same point as
+            # the actor critic model each day
             total_naive_fare, total_naive_fare_over_time,\
              naive_geohashes_visited = \
             self.NaiveApproach(s_time, s_geohash,
@@ -218,6 +245,8 @@ class ActorCriticNYCMLP(object):
             move_counter = 0
 
             while(not done):
+                # keep track of the geohases visited by the actor critic
+                list_of_geohashes_visited_actor_critic.append(starting_geohash)
                 # Get original state, original reward, and critic's value for this state.
 
                 orig_reward = reward
@@ -310,10 +339,10 @@ class ActorCriticNYCMLP(object):
                 actor_replay.append([orig_state, action, actor_delta])
 
                 # Critic Replays...
-                while(len(critic_replay) > buffer): # Trim replay buffer
+                while(len(critic_replay) > buffer_size): # Trim replay buffer
                     critic_replay.pop(0)
                 # Start training when we have enough samples.
-                if(len(critic_replay) >= buffer):
+                if(len(critic_replay) >= buffer_size):
                     minibatch = random.sample(critic_replay, batchSize)
                     X_train = []
                     y_train = []
@@ -329,9 +358,9 @@ class ActorCriticNYCMLP(object):
                     critic_loss.append(loss)
 
                 # Actor Replays...
-                while(len(actor_replay) > buffer):
+                while(len(actor_replay) > buffer_size):
                     actor_replay.pop(0)
-                if(len(actor_replay) >= buffer):
+                if(len(actor_replay) >= buffer_size):
                     X_train = []
                     y_train = []
                     minibatch = random.sample(actor_replay, batchSize)
@@ -363,10 +392,23 @@ class ActorCriticNYCMLP(object):
                 orig_state = new_state
                 starting_geohash = new_geohash  # update the starting geohash in case we stay here
 
+            day_end_time = time.time()
             # Finised Day
-
-            if save_model == True:
-                if n_days % 10 == 0:  # save every ten training days
+            if n_days % 10 == 0:  # save every ten training days
+                print('---------METRICS----------')
+                print("Day #: %s" % (i+1,))
+                print("Wins/Losses %s/%s" % (wins, losses))
+                print('Percent of moves this day that were profitable {}'.format(wins/(wins+losses)))
+                print('Epsilon is {}'.format(epsilon))
+                print('This day took {}'.format(day_end_time - day_start))
+                print('Critic last loss  = {}'.format(critic_loss[-1:]))
+                print('Actor last loss = {}'.format(actor_loss[-1:]))
+                print('Last Actor-Critic fare = {}'.format(
+                    total_fare_over_time[-:1]))
+                print('Last Naive fare = {}'.format(
+                    total_naive_fare_over_time[:-1]))
+                print("--------METIRCS END---------")
+                if args['save_model'] == True:
                     print("Now we save model")
                     self.actor_model.save_weights(self.args['save_model_weights_actor'],
                                                   overwrite=True)
@@ -378,25 +420,15 @@ class ActorCriticNYCMLP(object):
                     with open("model_critic.json", "w") as outfile:
                         json.dump(self.critic_model.to_json(), outfile)
 
+            # keep track of the fare over time
             average_fare_per_day.append(daily_fare/(wins+losses))
             percent_profitable_moves_over_time.append(wins/(wins+losses))
-            day_end_time = time.time()
-            print('---------METRICS----------')
-            print("Day #: %s" % (i+1,))
-            print("Moves this round %s" % move_counter)
-            print("Wins/Losses %s/%s" % (wins, losses))
-            print('Percent of moves this day that were profitable {}'.format(wins/(wins+losses)))
-            print('Epsilon is {}'.format(epsilon))
-            print('This day took {}'.format(day_end_time - day_start))
-            print('Critic last loss  = {}'.format(critic_loss[-1:]))
-            print('Actor last loss = {}'.format(actor_loss[-1:]))
-            print("--------METIRCS END---------")
 
             day_start = day_end_time
             if epsilon > min_epsilon:
                 epsilon -= (1/n_days)
 
-        if save_model == True:
+        if args['save_model'] == True:
             print("FINISHED TRAINING!!")
             self.actor_model.save_weights(self.args['save_model_weights_actor'],
                                           overwrite=True)
@@ -408,15 +440,18 @@ class ActorCriticNYCMLP(object):
                 json.dump(self.critic_model.to_json(), outfile)
 
             return actor_loss,critic_loss, total_fare_over_time, average_fare_per_day,\
-                percent_profitable_moves_over_time, total_naive_fare_over_time
+                percent_profitable_moves_over_time, total_naive_fare_over_time,\
+                list_of_geohashes_visited_actor_critic
         else:
             return actor_loss,critic_loss, total_fare_over_time, average_fare_per_day,\
-                percent_profitable_moves_over_time, total_naive_fare_over_time
+                percent_profitable_moves_over_time, total_naive_fare_over_time,\
+                list_of_geohashes_visited_actor_critic
 
 def data_attributes(taxi_yellowcab_df):
     """Some random data objects needed to train the RL algorithm"""
     list_of_output_predictions_to_direction =\
-        {0: 'nw', 1: 'n', 2: 'ne', 3: 'w', 4: 'stay', 5: 'e', 6: 'sw', 7: 's', 8: 'se'}
+        {0: 'nw', 1: 'n', 2: 'ne', 3: 'w', 4: 'stay', 5: 'e',
+         6: 'sw', 7: 's', 8: 'se'}
     list_of_unique_geohashes = taxi_yellowcab_df.geohash_pickup.unique()
     list_of_geohash_index = defaultdict(int)
     for idx, hash_n in enumerate(list_of_unique_geohashes):
@@ -446,18 +481,39 @@ if __name__ == '__main__':
         list_of_geohash_index, list_of_time_index, list_of_inverse_heohash_index\
          = data_attributes(taxi_yellowcab_df)
 
-    args = {'mode':'Run','save_model':True,'model_weights_load':'model_mlp_linear.h5',
-           'save_model_weights_critic':'mlp_critic.h5',
+    args = {'mode':'Train','save_model':True,'model_weights_load_actor':'model_actor.h5',
+           'model_weights_load_critic':'model_critic.h5','save_model_weights_critic':'mlp_critic.h5',
            'save_model_weights_actor':'mlp_actor.h5'}
 
     actor_critic_model = ActorCriticNYCMLP(args, 9, 2,
                                 list_of_unique_geohashes, list_of_time_index,
                                 list_of_geohash_index, list_of_inverse_heohash_index,
-                                final_data_structure,buffer=5)
+                                final_data_structure)
     # train our model
-    actor_critic_model.trainer()
+    actor_loss, critic_loss, AC_fare_over_time, average_fare_per_day,\
+        percent_profitable_moves_over_time, naive_fare_over_time,\
+        actor_critic_geohashes_visited = \
+        actor_critic_model.trainer(n_days=30000)
+    print(actor_loss,'actor loss')
+    print()
+    print(critic_loss,'critic_loss')
+    print()
+    print(AC_fare_over_time,'fare over time rl')
+    print()
+    print(naive_fare_over_time,'naive fare over time')
+    print()
+    print(actor_critic_geohashes_visited,'geohashes visited')
+    print()
+    print(percent_profitable_moves_over_time,' profitbale moves over time')
 
-
-    #actor_loss,critic_loss, total_fare_over_time, average_fare_per_day,\
-    #    percent_profitable_moves_over_time, total_naive_fare_over_time = \
-    #    actor_critic_model.trainer()
+    # save your metrics
+    with open('actor_loss', 'wb') as fp:
+        pickle.dump(actor_loss, fp)
+    with open('critic_loss','wb') as fp:
+        pickle.dump(critic_loss, fp)
+    with open('naive_fare_time','wb') as fp:
+        pickle.dump(naive_fare_over_time, fp)
+    with open('AC_fare_over_time','wb') as fp:
+        pickle.dump(AC_fare_over_time, fp)
+    with open('percent_profitable_moves_over_time','wb') as fp:
+        pickle.dump(percent_profitable_moves_over_time, fp)
