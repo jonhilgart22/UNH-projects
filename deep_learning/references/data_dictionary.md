@@ -9,7 +9,7 @@
 - Pickup_longitude Longitude where the meter was engaged.
 - Pickup_latitude Latitude where the meter was engaged.
 - RateCodeID The final rate code in effect at the end of the trip.
- 1= Standard rate 
+ 1= Standard rate
  2=JFK
  3=Newark
  4=Nassau or Westchester
@@ -55,3 +55,12 @@ _PRECISION = {
     9: 3.71,
     10: 0.6,
 }
+
+
+
+### Average speed of taxis in Manhattan
+- In 2014, it dropped to 8.51 MPH. http://www.wnyc.org/story/traffic-speeds-slow-nyc-wants-curb-car-service-growth/
+- 8.51 MPH is 3.80431 meters / second
+
+### Geohash units are meters
+- http://stackoverflow.com/questions/13448595/geohash-string-length-and-accuracy

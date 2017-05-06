@@ -403,10 +403,9 @@ class ActorCriticNYCMLP(object):
                 print('This day took {}'.format(day_end_time - day_start))
                 print('Critic last loss  = {}'.format(critic_loss[-1:]))
                 print('Actor last loss = {}'.format(actor_loss[-1:]))
-                print('Last Actor-Critic fare = {}'.format(
-                    total_fare_over_time[-:1]))
+                print('Last Actor-Critic fare = {}'.format(total_fare_over_time[-1:]))
                 print('Last Naive fare = {}'.format(
-                    total_naive_fare_over_time[:-1]))
+                    total_naive_fare_over_time[-1:]))
                 print("--------METIRCS END---------")
                 if args['save_model'] == True:
                     print("Now we save model")
