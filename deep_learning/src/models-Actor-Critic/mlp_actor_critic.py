@@ -34,7 +34,9 @@ class ActorCriticNYCMLP(object):
 
     def __init__(self, args, ACTION_SPACE, OBSERVATION_SPACE,
                  list_of_unique_geohashes,list_of_time_index, list_of_geohash_index,
-                             list_of_inverse_heohash_index, final_data_structure, ):
+                             list_of_inverse_heohash_index, final_data_structure,
+                             list_of_output_predictions_to_direction):
+        """Store the data attributes needed to train the Actor Critic model"""
 
         self.ACTION_SPACE = ACTION_SPACE
         self.OBSERVATION_SPACE = OBSERVATION_SPACE
@@ -46,6 +48,7 @@ class ActorCriticNYCMLP(object):
         self.list_of_geohash_index = list_of_geohash_index
         self.list_of_inverse_heohash_index = list_of_inverse_heohash_index
         self.final_data_structure = final_data_structure
+        self.list_of_output_predictions_to_direction = list_of_output_predictions_to_direction
 
 
     def actor_model(self):
@@ -208,12 +211,16 @@ class ActorCriticNYCMLP(object):
         if self.args['mode']=='Test':
             try:
                 print ("Now we load weight")
-                self.actor_model.load_weights(args['model_weights_load_actor'])
+                buffer_size = self.args['test_buffer_size']
+                if self.srgs['reduce_epsilon_test']==True:
+                    epsilon = .00001 # So that we don't take random actions
+                self.actor_model.load_weights(self.args['model_weights_load_actor'])
                 adam = Adam()
                 self.actor_model.compile(loss='mse',optimizer=adam)
-                self.critic_model.load_weights(args['model_weights_load_critic'])
+                self.critic_model.load_weights(self.args['model_weights_load_critic'])
                 adam = Adam()
-                print ("Weight load successfully")
+                self.critic_model.compile(loss='mse', optimizer= adam)
+                print ("Weight loaded successfully")
             except Exception as e:
                 print('We could not find weights')
                 print(e)
@@ -229,9 +236,9 @@ class ActorCriticNYCMLP(object):
             reward = 0
             info = None
             move_counter = 0
-            starting_geohash = np.random.choice(list_of_unique_geohashes)
-            s_time = np.random.choice(list_of_time_index)
-            s_geohash = list_of_geohash_index[starting_geohash]
+            starting_geohash = np.random.choice(self.list_of_unique_geohashes)
+            s_time = np.random.choice(self.list_of_time_index)
+            s_geohash = self.list_of_geohash_index[starting_geohash]
             a_t = np.zeros([ACTIONS])
             # start the naive appraoch at the same point as
             # the actor critic model each day
@@ -262,22 +269,22 @@ class ActorCriticNYCMLP(object):
                 # take action and observe the reward
 
                 #Get the neighbors from the current geohash - convert back to string
-                current_geohash_string = list_of_inverse_heohash_index[s_geohash]
+                current_geohash_string = self.list_of_inverse_heohash_index[s_geohash]
                 neighbors = gh.neighbors(current_geohash_string)
                 # Get the direction we should go
-                direction_to_move_to = list_of_output_predictions_to_direction[action]
+                direction_to_move_to = self.list_of_output_predictions_to_direction[action]
                 # Get the geohash of the direction we moved to
                 if direction_to_move_to =='stay':
                     new_geohash = starting_geohash # stay in current geohash, get the index of said geohash
-                    possible_rewards = np.array(final_data_structure[s_time][new_geohash])
+                    possible_rewards = np.array(self.final_data_structure[s_time][new_geohash])
                     # hash with the letters  of the geohash above
-                    new_geohash = list_of_geohash_index[starting_geohash]
+                    new_geohash = self.list_of_geohash_index[starting_geohash]
                 else:
                     new_geohash = neighbors[direction_to_move_to]## give us the geohash to move to next
 
                 # get the reward of the geohash we just moved to (this is the ratio of fare /time of trip)
                 # time, geohash, list of tuple ( fare, time ,ratio)
-                possible_rewards = np.array(final_data_structure[s_time][new_geohash])
+                possible_rewards = np.array(self.final_data_structure[s_time][new_geohash])
 
                 if len (possible_rewards) ==0:
                     r_t = -.1  # we do not have information for this time and geohash, don't go here. waste gass
@@ -289,7 +296,7 @@ class ActorCriticNYCMLP(object):
                     fare_t = possible_rewards[reward_option][0]
                     # get the trip length
                     s_time1 = s_time + possible_rewards[reward_option][1]
-                s_geohash1 = list_of_geohash_index[new_geohash]
+                s_geohash1 = self.list_of_geohash_index[new_geohash]
 
                 # get the new state that we moved to
                 new_state = np.array([[s_time1, s_geohash1]])
@@ -325,7 +332,12 @@ class ActorCriticNYCMLP(object):
                 # value network, to handle cases where its spitting
                 # out unreasonably high values.. naturally decaying
                 # these values to something reasonable.
-                best_val = max((orig_val*gamma), target)
+                # If the reward is less than zero, need to make surcharge
+                # this is captured for the experiene replay of the critic
+                if target <0:
+                    best_val = target
+                else:
+                    best_val = max((orig_val*gamma), target)
                 # Now append this to our critic replay buffer.
                 critic_replay.append([orig_state, best_val])
 
@@ -335,7 +347,12 @@ class ActorCriticNYCMLP(object):
                 # placed on the old state vs. the value the critic
                 # places on the new state.. encouraging the actor
                 # to move into more valuable states.
+                #print(new_val,'new value from the state you moved to')
+                #print(orig_val, 'original val from the first state')
+                #print(r_t, ' reward from moving to the nexxt state')
+                #print(target, ' actor target')
                 actor_delta = new_val - orig_val
+                #print(actor_delta,'actor delta')
                 actor_replay.append([orig_state, action, actor_delta])
 
                 # Critic Replays...
@@ -348,12 +365,14 @@ class ActorCriticNYCMLP(object):
                     y_train = []
                     for memory in minibatch:
                         m_state, m_value = memory
+
                         y = np.empty([1])
                         y[0] = m_value
                         X_train.append(m_state)
                         y_train.append(y.reshape((1,)))
                     X_train = np.vstack(X_train)
                     y_train = np.vstack(y_train)
+                    #print(y_train,'y train critic')
                     loss = self.critic_model.train_on_batch(X_train, y_train)
                     critic_loss.append(loss)
 
@@ -366,10 +385,13 @@ class ActorCriticNYCMLP(object):
                     minibatch = random.sample(actor_replay, batchSize)
                     for memory in minibatch:
                         m_orig_state, m_action, m_value = memory
+                        #print(m_value, ' m value actor - difference between newval and orig val from critic')
                         old_qval = self.actor_model.predict(m_orig_state)
                         y = np.zeros(( 1, ACTIONS))
                         y[:] = old_qval[:]
+                        #print(y,'old y before adding critic loss')
                         y[0][m_action] = m_value
+                        #print(y , 'y after adding critic loss_list')
                         X_train.append(m_orig_state)
                         y_train.append(y)
                     X_train = np.vstack(X_train)
@@ -407,7 +429,7 @@ class ActorCriticNYCMLP(object):
                 print('Last Naive fare = {}'.format(
                     total_naive_fare_over_time[-1:]))
                 print("--------METIRCS END---------")
-                if args['save_model'] == True:
+                if self.args['save_model'] == True:
                     print("Now we save model")
                     self.actor_model.save_weights(self.args['save_model_weights_actor'],
                                                   overwrite=True)
@@ -427,7 +449,7 @@ class ActorCriticNYCMLP(object):
             if epsilon > min_epsilon:
                 epsilon -= (1/n_days)
 
-        if args['save_model'] == True:
+        if self.args['save_model'] == True:
             print("FINISHED TRAINING!!")
             self.actor_model.save_weights(self.args['save_model_weights_actor'],
                                           overwrite=True)
@@ -480,19 +502,21 @@ if __name__ == '__main__':
         list_of_geohash_index, list_of_time_index, list_of_inverse_heohash_index\
          = data_attributes(taxi_yellowcab_df)
 
-    args = {'mode':'Train','save_model':True,'model_weights_load_actor':'model_actor.h5',
-           'model_weights_load_critic':'model_critic.h5','save_model_weights_critic':'mlp_critic.h5',
-           'save_model_weights_actor':'mlp_actor.h5'}
+    args = {'mode':'Train','save_model':True, 'model_weights_load_actor':'model_actor.h5',
+           'model_weights_load_critic':'model_critic.h5',
+           'save_model_weights_critic':'mlp_critic_updated.h5',
+           'save_model_weights_actor':'mlp_actor_updated.h5','test_buffer_size':500,
+           'reduce_epsilon_test':False}
 
     actor_critic_model = ActorCriticNYCMLP(args, 9, 2,
                                 list_of_unique_geohashes, list_of_time_index,
                                 list_of_geohash_index, list_of_inverse_heohash_index,
-                                final_data_structure)
+                                final_data_structure,list_of_output_predictions_to_direction)
     # train our model
     actor_loss, critic_loss, AC_fare_over_time, average_fare_per_day,\
         percent_profitable_moves_over_time, naive_fare_over_time,\
         actor_critic_geohashes_visited = \
-        actor_critic_model.trainer(n_days=30000)
+        actor_critic_model.trainer(n_days=10000, buffer_size=2000)
     print(actor_loss,'actor loss')
     print()
     print(critic_loss,'critic_loss')
@@ -506,13 +530,13 @@ if __name__ == '__main__':
     print(percent_profitable_moves_over_time,' profitbale moves over time')
 
     # save your metrics
-    with open('actor_loss', 'wb') as fp:
+    with open('actor_loss_updated', 'wb') as fp:
         pickle.dump(actor_loss, fp)
-    with open('critic_loss','wb') as fp:
+    with open('critic_loss_updated','wb') as fp:
         pickle.dump(critic_loss, fp)
-    with open('naive_fare_time','wb') as fp:
+    with open('naive_fare_time_updated','wb') as fp:
         pickle.dump(naive_fare_over_time, fp)
-    with open('AC_fare_over_time','wb') as fp:
+    with open('AC_fare_over_time_updated','wb') as fp:
         pickle.dump(AC_fare_over_time, fp)
-    with open('percent_profitable_moves_over_time','wb') as fp:
+    with open('percent_profitable_moves_over_time_updated','wb') as fp:
         pickle.dump(percent_profitable_moves_over_time, fp)

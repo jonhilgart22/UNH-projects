@@ -60,7 +60,7 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
 
 
     def build_lstm_model(self):
-        """Build a simple MLP model.
+        """Build a simpleLSTM model choosen by hyperparameter selection from hyperas.
         Input  time follwoed by the  geohash index. """
         model_lstm = Sequential()
         model_lstm .add(LSTM( 512, dropout=.24,

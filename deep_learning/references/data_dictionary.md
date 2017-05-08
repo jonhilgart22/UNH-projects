@@ -57,7 +57,6 @@ _PRECISION = {
 }
 
 
-
 ### Average speed of taxis in Manhattan
 - In 2014, it dropped to 8.51 MPH. http://www.wnyc.org/story/traffic-speeds-slow-nyc-wants-curb-car-service-growth/
 - 8.51 MPH is 3.80431 meters / second

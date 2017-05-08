@@ -15,9 +15,10 @@ Project Organization
     │
     ├── models             <- Trained and serialized models, model predictions, or model summaries
     │
-    ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-    │                         the creator's initials, and a short `-` delimited description, e.g.
-    │                         `1.0-jqp-initial-data-exploration`.
+    ├── notebooks          <- Jupyter notebook containing an overview of the entire project named
+    |                         NYC_Maximize_Taxi_Cab_Fare_With_Reinforcement_Learning. In addition,
+    |                         the trained weights, and loss, from each model are located here.
+    |                         Also, the .shape files for the NYC map are located here.
     │
     ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
     │
