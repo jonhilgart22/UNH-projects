@@ -30,7 +30,8 @@ __author__ = ' Jonathan Hilgart'
 class ActorCriticNYCMLP(object):
 
     """Train an actor critic model to maximize revenue for a NYC taxi driver.\
-    Code inspired from http://www.rage.net/~greg/2016-07-05-ActorCritic-with-OpenAI-Gym.htmlCode """
+    Code inspired from http://www.rage.net/~greg/2016-07-05-ActorCritic-with-OpenAI-Gym.htmlCode.
+    Each iteration in the code corresponds to a move between geohashes"""
 
     def __init__(self, args, ACTION_SPACE, OBSERVATION_SPACE,
                  list_of_unique_geohashes,list_of_time_index, list_of_geohash_index,
@@ -102,7 +103,11 @@ class ActorCriticNYCMLP(object):
                       historic_current_fare = None):
         """Assign the same probability to every state and
         keep track of the total fare received, total fare over time,
-        and geohashes visited"""
+        and geohashes visited.
+        Inputs are the starting geohash and time determined by the main algorithm.
+        This is to ensure both the naive, and algorithmic, approach start at
+        the same place.
+        Terminates after a day is finished"""
 
         ## parameters to track where we are and at what time
         starting_geohash = starting_geo
@@ -187,6 +192,9 @@ class ActorCriticNYCMLP(object):
             5) This temporal differen is used by the actor for training(i.e. if it
             is a large value, the network will encourage the actor to take this move
             more often)
+
+        Note: each geohash takes above 15minutes to drive through using
+        average_fare_per_days peed of 8.6 mph
         """
 
         # Replay buffers
@@ -347,12 +355,7 @@ class ActorCriticNYCMLP(object):
                 # placed on the old state vs. the value the critic
                 # places on the new state.. encouraging the actor
                 # to move into more valuable states.
-                #print(new_val,'new value from the state you moved to')
-                #print(orig_val, 'original val from the first state')
-                #print(r_t, ' reward from moving to the nexxt state')
-                #print(target, ' actor target')
                 actor_delta = new_val - orig_val
-                #print(actor_delta,'actor delta')
                 actor_replay.append([orig_state, action, actor_delta])
 
                 # Critic Replays...
@@ -365,14 +368,12 @@ class ActorCriticNYCMLP(object):
                     y_train = []
                     for memory in minibatch:
                         m_state, m_value = memory
-
                         y = np.empty([1])
                         y[0] = m_value
                         X_train.append(m_state)
                         y_train.append(y.reshape((1,)))
                     X_train = np.vstack(X_train)
                     y_train = np.vstack(y_train)
-                    #print(y_train,'y train critic')
                     loss = self.critic_model.train_on_batch(X_train, y_train)
                     critic_loss.append(loss)
 
@@ -385,13 +386,10 @@ class ActorCriticNYCMLP(object):
                     minibatch = random.sample(actor_replay, batchSize)
                     for memory in minibatch:
                         m_orig_state, m_action, m_value = memory
-                        #print(m_value, ' m value actor - difference between newval and orig val from critic')
                         old_qval = self.actor_model.predict(m_orig_state)
                         y = np.zeros(( 1, ACTIONS))
                         y[:] = old_qval[:]
-                        #print(y,'old y before adding critic loss')
                         y[0][m_action] = m_value
-                        #print(y , 'y after adding critic loss_list')
                         X_train.append(m_orig_state)
                         y_train.append(y)
                     X_train = np.vstack(X_train)
@@ -409,8 +407,6 @@ class ActorCriticNYCMLP(object):
                 # increment the state and time information
                 s_time = s_time1
                 s_geohash = s_geohash1
-    #             if return_metrics == True:
-    #                 list_of_geohashes_visited.append(starting_geohash)
                 orig_state = new_state
                 starting_geohash = new_geohash  # update the starting geohash in case we stay here
 

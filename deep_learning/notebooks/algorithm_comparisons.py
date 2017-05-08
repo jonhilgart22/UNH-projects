@@ -186,6 +186,8 @@ class AlgorithmComparison(object):
             ## convert index geohash to string geohash
             geohash_dqn_mlp = self.list_of_inverse_heohash_index[self.s_geohash1_dqn_mlp]
             geohash_dqn_lstm = self.list_of_inverse_heohash_index[self.s_geohash1_dqn_lstm]
+            geohash_ac_mlp = self.list_of_inverse_heohash_index[self.s_geohash1_dqn_lstm]
+            geohash_naive = self.list_of_inverse_heohash_index[self.s_geohash1_naive]
 
             start_state_dqn_mlp = np.array([[self.s_time1_dqn_mlp, self.s_geohash1_dqn_mlp ]])
             start_state_ac_mlp = np.array([[self.s_time1_ac_mlp, self.s_geohash1_ac_mlp ]])
@@ -213,22 +215,22 @@ class AlgorithmComparison(object):
             self.s_geohash1_dqn_mlp, self.s_time1_dqn_mlp, r_t_dqn_mlp, fare_t_dqn_mlp, \
                 latitude_s1_dqn_mlp, longtitude_s1_dqn_mlp = \
                 self.geohash_conversion_given_action_state(
-                    mlp_dqn_action, geohash_start, time_start)
+                    mlp_dqn_action, geohash_dqn_mlp, self.s_time1_dqn_mlp)
             # Record the information for DQN LSTM
             self.s_geohash1_dqn_lstm, self.s_time1_dqn_lstm, r_t_dqn_mlp, fare_t_dqn_lstm, \
                 latitude_s1_dqn_lstm, longtitude_s1_dqn_lstm = \
                 self.geohash_conversion_given_action_state(
-                    lstm_dqn_action, geohash_start, time_start)
+                    lstm_dqn_action, geohash_dqn_lstm, self.s_time1_dqn_lstm,)
             # Record information for Actor-Critic MLP
             self.s_geohash1_ac_mlp, self.s_time1_ac_mlp, r_t_dqn_mlp, fare_t_ac_mlp, \
                 latitude_s1_ac_mlp, longtitude_s1_ac_mlp = \
                 self.geohash_conversion_given_action_state(
-                    mlp_ac_action, geohash_start, time_start)
+                    mlp_ac_action, geohash_ac_mlp, self.s_time1_ac_mlp)
             # Record information for the Naive implementation
             self.s_geohash1_naive, self.s_time1_naive, r_t_dqn_mlp, fare_t_naive, \
                 latitude_s1_naive, longtitude_s1_naive = \
                 self.geohash_conversion_given_action_state(
-                    naive_action, geohash_start, time_start)
+                    naive_action, geohash_naive , self.s_time1_naive)
 
             return latitude_s1_dqn_mlp, longtitude_s1_dqn_mlp, \
                 latitude_s1_dqn_lstm, longtitude_s1_dqn_lstm, \

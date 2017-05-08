@@ -44,6 +44,7 @@ class RLNYCTaxiCab(object):
 
     def __init__(self, list_of_unique_geohashes,list_of_time_index, list_of_geohash_index,
                 list_of_inverse_heohash_index, final_data_structure, return_metrics=False):
+        """Sotre the data attributes needed to train out model."""
         self.list_of_unique_geohashes = list_of_unique_geohashes
         self.list_of_time_index = list_of_time_index
         self. list_of_geohash_index =  list_of_geohash_index
@@ -75,9 +76,13 @@ class RLNYCTaxiCab(object):
 
         self.model_mlp = model_mlp
 
-    def NaiveApproach(self, s_time_, s_geohash_,starting_geo, input_fare_list = None, historic_current_fare = None):
-        """Assign the same probability to every state and keep track of the total fare received, total fare over time,
-        and geohashes visited"""
+    def NaiveApproach(self, s_time_, s_geohash_,starting_geo,
+                      input_fare_list = None, historic_current_fare = None):
+        """Assign the same probability to every state and keep track of the
+        total fare received, total fare over time,
+        and geohashes visited.
+
+        Terminates after a 'day' is finished"""
 
         ## parameters to track where we are and at what time
         starting_geohash = starting_geo
@@ -118,24 +123,22 @@ class RLNYCTaxiCab(object):
             possible_rewards = np.array(self.final_data_structure[s_time][new_geohash])
 
             if len (possible_rewards) ==0:
-                r_t = -.1 ## we do not have information for this time and geohash, don't go here. waste gass
-                fare_t = 0 ## no information so the fare = 0
-                s_time1 = s_time+10 ## assume this took ten minutes
+                r_t = -.1  # we do not have information for this time and geohash, don't go here. waste gass
+                fare_t = 0  # no information so the fare = 0
+                s_time1 = s_time+10  # assume this took ten minutes
             else:
                 reward_option = np.random.randint(0,len(possible_rewards))
                 r_t =  possible_rewards[reward_option][2] # get the ratio of fare / trip time
                 fare_t = possible_rewards[reward_option][0]
                 # get the trip length
-                #print(possible_rewards[np.random.randint(0,len(possible_rewards))][1],'trip time in minutes')
                 s_time1 = s_time + possible_rewards[reward_option][1]
             s_geohash1 = self.list_of_geohash_index[new_geohash]
             # store the transition in D
             if s_time1 <= 2350: # The last possible time for a trip
                 terminal = 0
-                 ### get the naive implementation per day
-            else: # the day is over, pick a new starting geohash and time
-                break # the day is over
-
+                 # get the naive implementation per day
+            else:  # the day is over, pick a new starting geohash and time
+                break  # the day is over
 
             total_fare += fare_t
             total_fare_over_time.append(total_fare)
@@ -143,7 +146,7 @@ class RLNYCTaxiCab(object):
             # increment the state and time information
             s_time = s_time1
             s_geohash = s_geohash1
-            starting_geohash = new_geohash## update the starting geohash in case we stay here
+            starting_geohash = new_geohash #update the starting geohash in case we stay here
         return total_fare, total_fare_over_time, list_of_geohashes_visited
 
 
