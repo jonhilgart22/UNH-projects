@@ -24,13 +24,13 @@ Project Organization
     ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
     │
     ├── figures            <- Generated graphics of each algorithms', and a naive approach's,
-    |                         performance in NYC over time. Also contains the los sfunction over time.
+    |                         performance in NYC over time. Also contains the loss functions over training epochs.
     │
     ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
     │                         generated with `pip freeze > requirements.txt`
     │
-    ├── src                <- Source code for use in this project. Includes code for the models
-    |   |                     build with DQN and Actor Critic, hyperparameter selection, and
+    ├── src                <- Source code for use in this project. Includes code for the models to
+    |   |                     build with DQN and Actor Critic, hyperparameter selection (hyperas), and
     |   |                     visualizations.
     │   │
     │   ├── data           <- Scripts to download or generate data
@@ -41,9 +41,10 @@ Project Organization
     │   ├── models-DQN         <- Scripts to train models and then use trained models to make
     │   │   │                 predictions. Also, includes training data. For the DQN algorithm.
     │   │   ├── predict_model.py
-    │   │   └── train_model.py    <- Train the RL algorithm
-    |   |   |_ hyperparameter_optimization_mlp.py <- hyperparameter selection for the MLP model for our RL algorithm
-    |   |   |_ hyperparameter_optimization_lstm.py <- hyperparameter selection for the LSTM model
+    │   │   └── model_mlp.py   <- Train/Test the DQN MLP algorithm
+    |   |   └── model_lstm.py   <- Train/Test the DQN LSTM algorithm 
+    |   |   └── hyperparameter_optimization_mlp.py <- hyperparameter selection for the MLP model for our RL algorithm
+    |   |   └── hyperparameter_optimization_lstm.py <- hyperparameter selection for the LSTM model
     │   ├── models-Actor-Critic <- Script that shows the .py file with the training procedure
     │   └── visualization  <- Scripts to create exploratory and results oriented visualizations. Additional images showing the loss and fares earned over time.
     │       └── plotting_geohashes.py   <- A script to see a heatmap of fares over time for January for NYC taxis
