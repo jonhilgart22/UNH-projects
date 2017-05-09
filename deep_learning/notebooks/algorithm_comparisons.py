@@ -152,7 +152,7 @@ class AlgorithmComparison(object):
         if self.first_run == True:
             start_geohash_index = self.list_of_geohash_index[geohash_start]
             start_state = np.array([[time_start, start_geohash_index ]])
-            start_state_lstm = np.array([[[time_start, start_geohash_index ]]])
+            start_state_lstm = np.array([[[time_start, start_geohash_index]]])
 
             # predict for DQN MLP
             mlp_dqn_predictions = self.model_mlp_dqn.predict(start_state)
@@ -205,17 +205,17 @@ class AlgorithmComparison(object):
             ## convert index geohash to string geohash
             geohash_dqn_mlp = self.list_of_inverse_geohash_index[self.s_geohash1_dqn_mlp]
             geohash_dqn_lstm = self.list_of_inverse_geohash_index[self.s_geohash1_dqn_lstm]
-            geohash_ac_mlp = self.list_of_inverse_geohash_index[self.s_geohash1_dqn_lstm]
+            geohash_ac_mlp = self.list_of_inverse_geohash_index[self.s_geohash1_ac_mlp]
             geohash_naive = self.list_of_inverse_geohash_index[self.s_geohash1_naive]
 
             start_state_dqn_mlp = np.array([[self.s_time1_dqn_mlp, self.s_geohash1_dqn_mlp ]])
-            start_state_ac_mlp = np.array([[self.s_time1_ac_mlp, self.s_geohash1_ac_mlp ]])
-            start_state_lstm_dqn = np.array([[[self.s_time1_dqn_lstm, self.s_geohash1_dqn_lstm ]]])
-
+            start_state_ac_mlp = np.array([[self.s_time1_ac_mlp, self.s_geohash1_ac_mlp]])
+            start_state_lstm_dqn = np.array([[[self.s_time1_dqn_lstm, self.s_geohash1_dqn_lstm]]])
             # predict for DQN MLP
             mlp_dqn_predictions = self.model_mlp_dqn.predict(start_state_dqn_mlp)
             # action to take for MLP DQN
             mlp_dqn_action = np.argmax(mlp_dqn_predictions)
+
 
             # predict for DQN LSTM
             lstm_dqn_predictions = self.model_lstm_dqn.predict(start_state_lstm_dqn)
@@ -226,7 +226,6 @@ class AlgorithmComparison(object):
             mlp_ac_predictions = self.actor_model.predict(start_state_ac_mlp)
             # action to take for MLP DQN
             mlp_ac_action = np.argmax(mlp_ac_predictions)
-
             # predict for naive
             naive_action = np.random.choice([0,1,2,3,4,5,6,7,8])
 
