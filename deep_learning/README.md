@@ -21,6 +21,7 @@ Project Organization
     │   ├── actor_critic_mlp <- Weights for Actor Critic Model + loss during training
     │   ├── lstm_model_dqn <- Weights for the LSTM DQN model + loss during training
     │   └── mlp_model_dqn  <- Weights for MLP DQN model and loss during training
+    │   └── algorithm_comparisons.py <- Python file that tracks each algorithm implemented from the same starting location. Returns the latitude and longitude of each algorithm after picking a move to make.
     ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
     │
     ├── figures            <- Generated graphics of each algorithms', and a naive approach's,
@@ -42,7 +43,7 @@ Project Organization
     │   │   │                 predictions. Also, includes training data. For the DQN algorithm.
     │   │   ├── predict_model.py
     │   │   └── model_mlp.py   <- Train/Test the DQN MLP algorithm
-    |   |   └── model_lstm.py   <- Train/Test the DQN LSTM algorithm 
+    |   |   └── model_lstm.py   <- Train/Test the DQN LSTM algorithm
     |   |   └── hyperparameter_optimization_mlp.py <- hyperparameter selection for the MLP model for our RL algorithm
     |   |   └── hyperparameter_optimization_lstm.py <- hyperparameter selection for the LSTM model
     │   ├── models-Actor-Critic <- Script that shows the .py file with the training procedure
