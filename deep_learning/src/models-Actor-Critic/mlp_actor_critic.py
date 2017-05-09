@@ -31,7 +31,8 @@ class ActorCriticNYCMLP(object):
 
     """Train an actor critic model to maximize revenue for a NYC taxi driver.\
     Code inspired from http://www.rage.net/~greg/2016-07-05-ActorCritic-with-OpenAI-Gym.htmlCode.
-    Each iteration in the code corresponds to a move between geohashes"""
+    Each iteration in the code corresponds to a move between geohashes.
+    Each epoch is a sample of batchsize 'memories' from recent transitions"""
 
     def __init__(self, args, ACTION_SPACE, OBSERVATION_SPACE,
                  list_of_unique_geohashes,list_of_time_index, list_of_geohash_index,
@@ -220,7 +221,7 @@ class ActorCriticNYCMLP(object):
             try:
                 print ("Now we load weight")
                 buffer_size = self.args['test_buffer_size']
-                if self.srgs['reduce_epsilon_test']==True:
+                if self.args['reduce_epsilon_test']==True:
                     epsilon = .00001 # So that we don't take random actions
                 self.actor_model.load_weights(self.args['model_weights_load_actor'])
                 adam = Adam()
@@ -251,9 +252,10 @@ class ActorCriticNYCMLP(object):
             # start the naive appraoch at the same point as
             # the actor critic model each day
             total_naive_fare, total_naive_fare_over_time,\
-             naive_geohashes_visited = \
+             new_naive_geohashes_visited = \
             self.NaiveApproach(s_time, s_geohash,
                 starting_geohash, total_naive_fare_over_time, total_naive_fare)
+            naive_geohashes_visited.extend(new_naive_geohashes_visited)
 
             orig_state = np.array([[s_time, s_geohash]])
             orig_reward = 0
@@ -342,8 +344,8 @@ class ActorCriticNYCMLP(object):
                 # these values to something reasonable.
                 # If the reward is less than zero, need to make surcharge
                 # this is captured for the experiene replay of the critic
-                if target <0:
-                    best_val = target
+                if r_t <0: # if the reward is negative, learn from the environment to
+                    best_val = r_t # prevent the critic from assigning high values in the future
                 else:
                     best_val = max((orig_val*gamma), target)
                 # Now append this to our critic replay buffer.
@@ -355,6 +357,9 @@ class ActorCriticNYCMLP(object):
                 # placed on the old state vs. the value the critic
                 # places on the new state.. encouraging the actor
                 # to move into more valuable states.
+                #print(new_cal,'new val')
+                #print(orig_cal,'orig val')
+
                 actor_delta = new_val - orig_val
                 actor_replay.append([orig_state, action, actor_delta])
 
@@ -386,10 +391,13 @@ class ActorCriticNYCMLP(object):
                     minibatch = random.sample(actor_replay, batchSize)
                     for memory in minibatch:
                         m_orig_state, m_action, m_value = memory
+                        #print(m_orig_state,'m orig state')
                         old_qval = self.actor_model.predict(m_orig_state)
+                        #print(old_qval, ' actor predicted y ')
                         y = np.zeros(( 1, ACTIONS))
                         y[:] = old_qval[:]
                         y[0][m_action] = m_value
+                        #print(y, ' new y with replaced value from critic')
                         X_train.append(m_orig_state)
                         y_train.append(y)
                     X_train = np.vstack(X_train)
@@ -458,11 +466,11 @@ class ActorCriticNYCMLP(object):
 
             return actor_loss,critic_loss, total_fare_over_time, average_fare_per_day,\
                 percent_profitable_moves_over_time, total_naive_fare_over_time,\
-                list_of_geohashes_visited_actor_critic
+                list_of_geohashes_visited_actor_critic, naive_geohashes_visited
         else:
             return actor_loss,critic_loss, total_fare_over_time, average_fare_per_day,\
                 percent_profitable_moves_over_time, total_naive_fare_over_time,\
-                list_of_geohashes_visited_actor_critic
+                list_of_geohashes_visited_actor_critic, naive_geohashes_visited
 
 def data_attributes(taxi_yellowcab_df):
     """Some random data objects needed to train the RL algorithm"""
@@ -498,10 +506,10 @@ if __name__ == '__main__':
         list_of_geohash_index, list_of_time_index, list_of_inverse_heohash_index\
          = data_attributes(taxi_yellowcab_df)
 
-    args = {'mode':'Train','save_model':True, 'model_weights_load_actor':'model_actor.h5',
-           'model_weights_load_critic':'model_critic.h5',
-           'save_model_weights_critic':'mlp_critic_updated.h5',
-           'save_model_weights_actor':'mlp_actor_updated.h5','test_buffer_size':500,
+    args = {'mode':'Train','save_model':True, 'model_weights_load_actor':'model_actor_updated.h5',
+           'model_weights_load_critic':'model_critic_updated.h5',
+           'save_model_weights_critic':'mlp_critic_updated_25k.h5',
+           'save_model_weights_actor':'mlp_actor_updated_25k.h5','test_buffer_size':2000,
            'reduce_epsilon_test':False}
 
     actor_critic_model = ActorCriticNYCMLP(args, 9, 2,
@@ -511,28 +519,28 @@ if __name__ == '__main__':
     # train our model
     actor_loss, critic_loss, AC_fare_over_time, average_fare_per_day,\
         percent_profitable_moves_over_time, naive_fare_over_time,\
-        actor_critic_geohashes_visited = \
-        actor_critic_model.trainer(n_days=10000, buffer_size=2000)
-    print(actor_loss,'actor loss')
+        actor_critic_geohashes_visited , naive_geohashes_visited = \
+        actor_critic_model.trainer(n_days=5000, buffer_size=2000)
+    #print(actor_loss,'actor loss')
     print()
-    print(critic_loss,'critic_loss')
+    #print(critic_loss,'critic_loss')
     print()
-    print(AC_fare_over_time,'fare over time rl')
+    #print(AC_fare_over_time,'fare over time rl')
     print()
-    print(naive_fare_over_time,'naive fare over time')
+    #print(naive_fare_over_time,'naive fare over time')
     print()
-    print(actor_critic_geohashes_visited,'geohashes visited')
+    #print(actor_critic_geohashes_visited,'geohashes visited')
     print()
-    print(percent_profitable_moves_over_time,' profitbale moves over time')
+    #print(percent_profitable_moves_over_time,' profitbale moves over time')
 
     # save your metrics
-    with open('actor_loss_updated', 'wb') as fp:
+    with open('actor_loss_new_5k', 'wb') as fp:
         pickle.dump(actor_loss, fp)
-    with open('critic_loss_updated','wb') as fp:
+    with open('critic_loss_new_5k','wb') as fp:
         pickle.dump(critic_loss, fp)
-    with open('naive_fare_time_updated','wb') as fp:
+    with open('naive_fare_time_new_5k','wb') as fp:
         pickle.dump(naive_fare_over_time, fp)
-    with open('AC_fare_over_time_updated','wb') as fp:
+    with open('AC_fare_over_time_new_5k','wb') as fp:
         pickle.dump(AC_fare_over_time, fp)
-    with open('percent_profitable_moves_over_time_updated','wb') as fp:
+    with open('percent_profitable_moves_over_time_new_5k','wb') as fp:
         pickle.dump(percent_profitable_moves_over_time, fp)

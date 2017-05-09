@@ -27,29 +27,30 @@ __author__ = ' Jonathan Hilgart'
 
 
 class AlgorithmComparison(object):
-    """A class used to compare DQN (mlp and lstm), Actor Critic, and a naive approach"""
+    """A class used to compare DQN (mlp and lstm), Actor Critic MLP, and a naive approach"""
 
 
     def __init__(self, args, ACTION_SPACE, OBSERVATION_SPACE,
                  list_of_unique_geohashes,list_of_time_index, list_of_geohash_index,
-                             list_of_inverse_heohash_index, final_data_structure,
+                             list_of_inverse_geohash_index, final_data_structure,
                              list_of_output_predictions_to_direction):
-        """Store the data attributes needed for each algorithm"""
+        """Store the data attributes needed for each algorithm.
+        Also, compile each model that will be compared."""
 
         self.ACTION_SPACE = ACTION_SPACE
         self.OBSERVATION_SPACE = OBSERVATION_SPACE
         self.args = args
-        self.actor_model()
-        self.critic_model()
+
         self.list_of_unique_geohashes = list_of_unique_geohashes
         self.list_of_time_index = list_of_time_index
         self.list_of_geohash_index = list_of_geohash_index
-        self.list_of_inverse_heohash_index = list_of_inverse_heohash_index
+        self.list_of_inverse_geohash_index = list_of_inverse_geohash_index
         self.final_data_structure = final_data_structure
         self.list_of_output_predictions_to_direction = list_of_output_predictions_to_direction
-
+        # Build the various models and load the weights
         self.actor_model()
         self.build_mlp_dqn_model()
+        self.build_lstm_dqn_model()
 
         self.first_run = True
 
@@ -74,16 +75,18 @@ class AlgorithmComparison(object):
         model_mlp.add(Dropout(.3))
         model_mlp.add(Dense(self.ACTION_SPACE, activation='linear'))
         # predict which geohash to move to next
+        print('Loading weights for Actor model')
         model_mlp.load_weights(self.args['model_weights_load_actor_mlp'])
+        print('Weights loaded for Actor model')
         adam = Adam(clipnorm=1.0)
         model_mlp.compile(loss='mse',optimizer=adam)
         self.actor_model = model_mlp
 
-    def build_mlp_mdqn_odel(self):
+    def build_mlp_dqn_model(self):
         """Build a simple MLP model.
         Input  time follwoed by the  geohash index for predictions"""
         model_mlp = Sequential()
-        model_mlp.add(Dense(100, input_shape=(self.OBSERVATION_SPACE,,)))
+        model_mlp.add(Dense(100, input_shape=(self.OBSERVATION_SPACE,)))
         model_mlp.add(BatchNormalization())
         model_mlp.add(Activation('relu'))
         model_mlp.add(Dropout(.3))
@@ -96,11 +99,13 @@ class AlgorithmComparison(object):
         model_mlp.add(Activation('relu'))
         model_mlp.add(Dropout(.3))
         model_mlp.add(Dense(self.ACTION_SPACE, activation='linear')) ## predict which geohash to move to next
-        adam = Adam(lr=LEARNING_RATE)
+        adam = Adam()
+        print('Loading weights for MLP DQN')
         model_mlp.load_weights(self.args['model_weights_load_dqn_mlp'])
+        print('Weights loaded for MLP DQN')
         model_mlp.compile(loss='mse',optimizer=adam)
 
-        self.model_mlp_dqn = model_mlp_dqn
+        self.model_mlp_dqn = model_mlp
 
     def build_lstm_dqn_model(self):
         """Build a simpleLSTM model choosen by hyperparameter selection from hyperas.
@@ -119,37 +124,50 @@ class AlgorithmComparison(object):
         model_lstm.add(Activation('sigmoid'))
         model_lstm .add(Dense(9, activation='linear',name='dense_output'))
         adam = Adam(clipnorm=.5, clipvalue=.5)
+        print('Loading weights for LSTM DQN')
         model_lstm.load_weights(self.args['model_weights_load_dqn_lstm'])
+        print('Weights loaded for LSTM DQN')
         model_lstm .compile(loss='mean_squared_error', optimizer=adam)
         self.model_lstm_dqn = model_lstm
 
-    def output_lat_long_predictions_given_input(self,geohash_start=None, time_start=None):
+    def output_lat_long_predictions_given_input(self,geohash_start=None,
+                                                time_start=None, first_run=None):
         """Give n the starting geohash , and time, see which direction each algorithm
-        goes to. Return the latitude and longitude for each geohash start and time_start.
+        goes to.
         If running for the first time, provide a geohash and time to start at.
         If running past the first time, the model will have kept the previous geohashah
         and time to create a prediction from.
-        """
 
-        if self.first_run = True:
+        Returns the latitude and longtitude for each algorithm alonside the
+        fare received for each move the different algorithms made.
+
+        If you call this function multiple times, you do not need to providea geohash_start
+        or time_start as these will be stored for each algorithm by the class.
+
+
+        """
+        if first_run != None:
+            self.first_run = first_run
+
+        if self.first_run == True:
             start_geohash_index = self.list_of_geohash_index[geohash_start]
-            start_state = np.array([[time_start,geohash_start]])
-            start_state_lstm = np.array([[[time_start, geohash_start]]])
+            start_state = np.array([[time_start, start_geohash_index ]])
+            start_state_lstm = np.array([[[time_start, start_geohash_index ]]])
 
             # predict for DQN MLP
             mlp_dqn_predictions = self.model_mlp_dqn.predict(start_state)
             # action to take for MLP DQN
-            mlp_dqn_action = np.argmax(mlp_dqn_preidctions)
+            mlp_dqn_action = np.argmax(mlp_dqn_predictions)
 
             # predict for DQN LSTM
             lstm_dqn_predictions = self.model_lstm_dqn.predict(start_state_lstm)
             # action to take for MLP DQN
-            lstm_dqn_action = np.argmax(lstm_dqn_preidctions)
+            lstm_dqn_action = np.argmax(lstm_dqn_predictions)
 
             # predict for actor critic
             mlp_ac_predictions = self.actor_model.predict(start_state)
             # action to take for MLP DQN
-            mlp_ac_action = np.argmax(mlp_ac_preidctions)
+            mlp_ac_action = np.argmax(mlp_ac_predictions)
 
             # predict for naive
             naive_action = np.random.choice([0,1,2,3,4,5,6,7,8])
@@ -177,17 +195,18 @@ class AlgorithmComparison(object):
 
             self.first_run = False
 
-            return latitude_s1_dqn_mlp, longtitude_s1_dqn_mlp, \
-                latitude_s1_dqn_lstm, longtitude_s1_dqn_lstm, \
-                latitude_s1_ac_mlp, longtitude_s1_ac_mlp, \
-                latitude_s1_naive, longtitude_s1_naive
+
+            return latitude_s1_dqn_mlp, longtitude_s1_dqn_mlp, fare_t_dqn_mlp,\
+                latitude_s1_dqn_lstm, longtitude_s1_dqn_lstm, fare_t_dqn_lstm,\
+                latitude_s1_ac_mlp, longtitude_s1_ac_mlp, fare_t_ac_mlp,\
+                latitude_s1_naive, longtitude_s1_naive, fare_t_naive
 
         else:
             ## convert index geohash to string geohash
-            geohash_dqn_mlp = self.list_of_inverse_heohash_index[self.s_geohash1_dqn_mlp]
-            geohash_dqn_lstm = self.list_of_inverse_heohash_index[self.s_geohash1_dqn_lstm]
-            geohash_ac_mlp = self.list_of_inverse_heohash_index[self.s_geohash1_dqn_lstm]
-            geohash_naive = self.list_of_inverse_heohash_index[self.s_geohash1_naive]
+            geohash_dqn_mlp = self.list_of_inverse_geohash_index[self.s_geohash1_dqn_mlp]
+            geohash_dqn_lstm = self.list_of_inverse_geohash_index[self.s_geohash1_dqn_lstm]
+            geohash_ac_mlp = self.list_of_inverse_geohash_index[self.s_geohash1_dqn_lstm]
+            geohash_naive = self.list_of_inverse_geohash_index[self.s_geohash1_naive]
 
             start_state_dqn_mlp = np.array([[self.s_time1_dqn_mlp, self.s_geohash1_dqn_mlp ]])
             start_state_ac_mlp = np.array([[self.s_time1_ac_mlp, self.s_geohash1_ac_mlp ]])
@@ -196,17 +215,17 @@ class AlgorithmComparison(object):
             # predict for DQN MLP
             mlp_dqn_predictions = self.model_mlp_dqn.predict(start_state_dqn_mlp)
             # action to take for MLP DQN
-            mlp_dqn_action = np.argmax(mlp_dqn_preidctions)
+            mlp_dqn_action = np.argmax(mlp_dqn_predictions)
 
             # predict for DQN LSTM
             lstm_dqn_predictions = self.model_lstm_dqn.predict(start_state_lstm_dqn)
             # action to take for MLP DQN
-            lstm_dqn_action = np.argmax(lstm_dqn_preidctions)
+            lstm_dqn_action = np.argmax(lstm_dqn_predictions)
 
             # predict for actor critic
             mlp_ac_predictions = self.actor_model.predict(start_state_ac_mlp)
             # action to take for MLP DQN
-            mlp_ac_action = np.argmax(mlp_ac_preidctions)
+            mlp_ac_action = np.argmax(mlp_ac_predictions)
 
             # predict for naive
             naive_action = np.random.choice([0,1,2,3,4,5,6,7,8])
@@ -232,10 +251,10 @@ class AlgorithmComparison(object):
                 self.geohash_conversion_given_action_state(
                     naive_action, geohash_naive , self.s_time1_naive)
 
-            return latitude_s1_dqn_mlp, longtitude_s1_dqn_mlp, \
-                latitude_s1_dqn_lstm, longtitude_s1_dqn_lstm, \
-                latitude_s1_ac_mlp, longtitude_s1_ac_mlp, \
-                latitude_s1_naive, longtitude_s1_naive
+            return latitude_s1_dqn_mlp, longtitude_s1_dqn_mlp, fare_t_dqn_mlp,\
+                latitude_s1_dqn_lstm, longtitude_s1_dqn_lstm, fare_t_dqn_lstm,\
+                latitude_s1_ac_mlp, longtitude_s1_ac_mlp, fare_t_ac_mlp,\
+                latitude_s1_naive, longtitude_s1_naive, fare_t_naive
 
 
             self.first_run = False
@@ -248,22 +267,24 @@ class AlgorithmComparison(object):
         Returns geohash, time, reward ratio (fare / time), fare, lat, and longtitude"""
 
         #Get the neighbors from the current geohash - convert back to string
-        current_geohash_string = self.list_of_inverse_heohash_index[start_geohash]
-        neighbors = gh.neighbors(current_geohash_string)
+        #current_geohash_string = self.list_of_inverse_geohash_index[start_geohash]
+        #print(current_geohash_string,' current eohash string')
+
+        neighbors = gh.neighbors(start_geohash)
         # Get the direction we should go
         direction_to_move_to = list_of_output_predictions_to_direction[action]
         # Get the geohash of the direction we moved to
         if direction_to_move_to =='stay':
-            new_geohash = starting_geohash  # stay in current geohash, get the index of said geohash
+            new_geohash = start_geohash  # stay in current geohash, get the index of said geohash
             possible_rewards = np.array(self.final_data_structure[start_time][new_geohash])
             # hash with the letters  of the geohash above
-            new_geohash = self.list_of_geohash_index[starting_geohash]
+            new_geohash = self.list_of_geohash_index[start_geohash]
         else:
             new_geohash = neighbors[direction_to_move_to]## give us the geohash to move to next
 
         # get the reward of the geohash we just moved to (this is the ratio of fare /time of trip)
         # time, geohash, list of tuple ( fare, time ,ratio)
-        possible_rewards = np.array(self.final_data_structure[s_time][new_geohash])
+        possible_rewards = np.array(self.final_data_structure[start_time][new_geohash])
 
         if len (possible_rewards) ==0:
             r_t = -.1  # we do not have information for this time and geohash, don't go here. waste gass
@@ -277,7 +298,8 @@ class AlgorithmComparison(object):
             s_time1 = start_time + possible_rewards[reward_option][1]
         s_geohash1 = self.list_of_geohash_index[new_geohash]
         # decode the geohash into latitude nad longtitude
-        decoded_geohash_s1 = gh.decode(s_geohash1)
+        decoded_geohash_s1 = gh.decode(
+            (self.list_of_inverse_geohash_index[s_geohash1]))
         latitude_s1 = decoded_geohash_s1['lat']
         longtitude_s1 = decoded_geohash_s1['lon']
         # return the latitude and longtitude, fare, geohash, and time
@@ -287,7 +309,7 @@ class AlgorithmComparison(object):
 
 
 
-
-args = {'model_weights_load_actor_mlp':,
-        'model_weights_load_dqn_mlp':'mlp_model_dqn/model_mlp_linear_2million.h5',
-        'model_weights_load_dqn_lstm':}
+#
+# args = {'model_weights_load_actor_mlp':None,
+#         'model_weights_load_dqn_mlp':'mlp_model_dqn/model_mlp_linear_2million.h5',
+#         'model_weights_load_dqn_lstm':'lstm_model_dqn/lstm_weight_200k.h5'}

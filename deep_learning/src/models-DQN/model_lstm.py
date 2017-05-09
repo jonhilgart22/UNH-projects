@@ -38,7 +38,7 @@ OBSERVATION = 10000. # timesteps to observe before training
 EXPLORE = 300000 # frames over which to anneal epsilon
 FINAL_EPSILON = 0.001 # final value of epsilon
 INITIAL_EPSILON = 0.1 # starting value of epsilon
-TRAINING_EPSILON = .1
+TRAINING_EPSILON = .0001
 REPLAY_MEMORY = 50000 # number of previous transitions to remember
 BATCH = 64 # size of minibatch
 FRAME_PER_ACTION = 1
@@ -183,7 +183,7 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
                          s_geohash]]])
 
         if args['mode'] == 'Run':
-            OBSERVE = 50000  #We keep observe, never train
+            OBSERVE = 500  #We keep observe, never train
             epsilon = TRAINING_EPSILON
             print ("Now we load weight")
             self.model_lstm.load_weights(args['model_weights_load'])
@@ -287,8 +287,7 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
                         total_naive_fare, total_naive_fare_over_time, naive_geohashes_visited = \
                         self.NaiveApproach(s_time1, s_geohash1,
                             starting_geohash, total_naive_fare_over_time,total_naive_fare )
-                        if return_training_data == True:
-                            list_of_naive_geohashes_visited.extend(naive_geohashes_visited)
+                        list_of_naive_geohashes_visited.extend(naive_geohashes_visited)
             # Terminal should be a one if the day is over or a zero otherwise
             # time, geohash, action index, reward, time1, geohash 1, terminal
             D.append((s_time,s_geohash, action_index, r_t, s_time1, s_geohash1, terminal))
