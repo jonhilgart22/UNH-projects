@@ -16,14 +16,16 @@ Project Organization
     ├── models             <- Trained and serialized models, model predictions, or model summaries
     │
     ├── notebooks          <- Jupyter notebook containing an overview of the entire project named
-    |                         NYC_Maximize_Taxi_Cab_Fare_With_Reinforcement_Learning. In addition,
-    |                         the trained weights, and loss, from each model are located here.
-    |                         Also, the .shape files for the NYC map are located here.
-    │
+    |   |                     NYC_Maximize_Taxi_Cab_Fare_With_Reinforcement_Learning. In addition,
+    |   |                     the trained weights, and loss, from each model are located here.
+    |   |                     Also, the .shape files for the NYC map are located here.
+    │   ├── actor_critic_mlp <- Weights for Actor Critic Model + loss during training
+    │   ├── lstm_model_dqn <- Weights for the LSTM DQN model + loss during training
+    │   └── mlp_model_dqn  <- Weights for MLP DQN model and loss during training
     ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
     │
     ├── figures            <- Generated graphics of each algorithms', and a naive approach's,
-    |                         performance in NYC over time.
+    |                         performance in NYC over time. Also contains the los sfunction over time.
     │
     ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
     │                         generated with `pip freeze > requirements.txt`
@@ -43,7 +45,7 @@ Project Organization
     │   │   └── train_model.py    <- Train the RL algorithm
     |   |   |_ hyperparameter_optimization_mlp.py <- hyperparameter selection for the MLP model for our RL algorithm
     |   |   |_ hyperparameter_optimization_lstm.py <- hyperparameter selection for the LSTM model
-    │   │
+    │   ├── models-Actor-Critic <- Script that shows the .py file with the training procedure
     │   └── visualization  <- Scripts to create exploratory and results oriented visualizations. Additional images showing the loss and fares earned over time.
     │       └── plotting_geohashes.py   <- A script to see a heatmap of fares over time for January for NYC taxis
     │
