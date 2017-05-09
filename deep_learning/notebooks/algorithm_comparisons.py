@@ -271,7 +271,7 @@ class AlgorithmComparison(object):
 
         neighbors = gh.neighbors(start_geohash)
         # Get the direction we should go
-        direction_to_move_to = list_of_output_predictions_to_direction[action]
+        direction_to_move_to = self.list_of_output_predictions_to_direction[action]
         # Get the geohash of the direction we moved to
         if direction_to_move_to =='stay':
             new_geohash = start_geohash  # stay in current geohash, get the index of said geohash

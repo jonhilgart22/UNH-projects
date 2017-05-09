@@ -278,14 +278,15 @@ class ActorCriticNYCMLP(object):
 
                 # take action and observe the reward
 
-                #Get the neighbors from the current geohash - convert back to string
+                # Get the neighbors from the current geohash - convert back to string
                 current_geohash_string = self.list_of_inverse_heohash_index[s_geohash]
                 neighbors = gh.neighbors(current_geohash_string)
                 # Get the direction we should go
                 direction_to_move_to = self.list_of_output_predictions_to_direction[action]
                 # Get the geohash of the direction we moved to
                 if direction_to_move_to =='stay':
-                    new_geohash = starting_geohash # stay in current geohash, get the index of said geohash
+                    new_geohash = starting_geohash
+                    # stay in current geohash, get the index of said geohash
                     possible_rewards = np.array(self.final_data_structure[s_time][new_geohash])
                     # hash with the letters  of the geohash above
                     new_geohash = self.list_of_geohash_index[starting_geohash]
@@ -296,13 +297,15 @@ class ActorCriticNYCMLP(object):
                 # time, geohash, list of tuple ( fare, time ,ratio)
                 possible_rewards = np.array(self.final_data_structure[s_time][new_geohash])
 
-                if len (possible_rewards) ==0:
-                    r_t = -.1  # we do not have information for this time and geohash, don't go here. waste gass
+                if len (possible_rewards) == 0:
+                    r_t = -.1
+                     # we do not have information for this time and geohash, don't go here. waste gass
                     fare_t = 0  # no information so the fare = 0
                     s_time1 = s_time+10  # assume this took ten minutes
                 else:
                     reward_option = np.random.randint(0, len(possible_rewards))
-                    r_t = possible_rewards[reward_option][2] # get the ratio of fare / trip time
+                    r_t = possible_rewards[reward_option][2]
+                    # get the ratio of fare / trip time
                     fare_t = possible_rewards[reward_option][0]
                     # get the trip length
                     s_time1 = s_time + possible_rewards[reward_option][1]
@@ -321,7 +324,7 @@ class ActorCriticNYCMLP(object):
                 # See if we finished a day
                 if s_time1 <= 2350:  # The last possible time for a tripn
                     terminal = 0
-                else: # the day is over, pick a new starting geohash and time
+                else:  # the day is over, pick a new starting geohash and time
                     print('ONE DAY OVER!')
                     done = True
                     total_days_driven += 1
@@ -345,7 +348,8 @@ class ActorCriticNYCMLP(object):
                 # If the reward is less than zero, need to make surcharge
                 # this is captured for the experiene replay of the critic
                 if r_t <0: # if the reward is negative, learn from the environment to
-                    best_val = r_t # prevent the critic from assigning high values in the future
+                    best_val = r_t
+                    # prevent the critic from assigning high values in the future
                 else:
                     best_val = max((orig_val*gamma), target)
                 # Now append this to our critic replay buffer.
@@ -357,9 +361,6 @@ class ActorCriticNYCMLP(object):
                 # placed on the old state vs. the value the critic
                 # places on the new state.. encouraging the actor
                 # to move into more valuable states.
-                #print(new_cal,'new val')
-                #print(orig_cal,'orig val')
-
                 actor_delta = new_val - orig_val
                 actor_replay.append([orig_state, action, actor_delta])
 
@@ -391,13 +392,10 @@ class ActorCriticNYCMLP(object):
                     minibatch = random.sample(actor_replay, batchSize)
                     for memory in minibatch:
                         m_orig_state, m_action, m_value = memory
-                        #print(m_orig_state,'m orig state')
                         old_qval = self.actor_model.predict(m_orig_state)
-                        #print(old_qval, ' actor predicted y ')
                         y = np.zeros(( 1, ACTIONS))
                         y[:] = old_qval[:]
-                        y[0][m_action] = m_value
-                        #print(y, ' new y with replaced value from critic')
+                        y[0][m_action] = m_value # Replace the value
                         X_train.append(m_orig_state)
                         y_train.append(y)
                     X_train = np.vstack(X_train)
@@ -416,7 +414,8 @@ class ActorCriticNYCMLP(object):
                 s_time = s_time1
                 s_geohash = s_geohash1
                 orig_state = new_state
-                starting_geohash = new_geohash  # update the starting geohash in case we stay here
+                starting_geohash = new_geohash
+                 # update the starting geohash in case we stay here
 
             day_end_time = time.time()
             # Finised Day
@@ -473,7 +472,15 @@ class ActorCriticNYCMLP(object):
                 list_of_geohashes_visited_actor_critic, naive_geohashes_visited
 
 def data_attributes(taxi_yellowcab_df):
-    """Some random data objects needed to train the RL algorithm"""
+    """Some random data objects needed to train the RL algorithm.
+    Includes a conversion from direction index (0-8) to a
+    direction (n,s,w,e,...etc). Therefore, we can use the
+    gh.neighbors attribute to find the geohashes associated with each
+    direction.
+    Also, has a dict for geohash : geohash_index
+    Contains a dict for geohash_index : geohash
+    Contains a list of all times
+    Contains a list of all unique geohashes"""
     list_of_output_predictions_to_direction =\
         {0: 'nw', 1: 'n', 2: 'ne', 3: 'w', 4: 'stay', 5: 'e',
          6: 'sw', 7: 's', 8: 'se'}

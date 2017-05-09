@@ -10,10 +10,9 @@ Project Organization
     ├── LICENSE
     ├── Makefile           <- Makefile with commands like `make data` or `make train`
     ├── README.md          <- The top-level README for developers using this project.
-    ├── data               <- Not available on GitHub
+    ├── data               <- Not available on GitHub. Can access here http://www.nyc.gov/html/tlc/html/about/trip_record_data.shtml
     │  
     │
-    ├── models             <- Trained and serialized models, model predictions, or model summaries
     │
     ├── notebooks          <- Jupyter notebook containing an overview of the entire project named
     |   |                     NYC_Maximize_Taxi_Cab_Fare_With_Reinforcement_Learning. In addition,

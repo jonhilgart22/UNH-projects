@@ -161,7 +161,14 @@ class RLNYCTaxiCab(object):
         3803 x 3803 meters (~15 minutes of driving time to traverse in NYC).
         This algoirthm incorporates experience replay to stablize the training procedure
         for the DQN algorithm. Due to the large size of the input features,
-        you need to train for a long time (1-2million iterations) """
+        you need to train for a long time (1-2million iterations) .
+
+        This implementation also uses a Naive approach which has both the DQN and
+        Naive implementation start at the same geohash and same time. Then,
+        each algorithm will run until the day is finished keeping track
+        of the geohashes visited and fare received.
+
+        This information is finally returned."""
 
         self.return_training_data = return_training_data
         # store the previous observations in replay memory
@@ -230,13 +237,13 @@ class RLNYCTaxiCab(object):
                     #print('Action {}'.format(action_index))
                     a_t[max_Q] = 1
 
-            #We reduced the epsilon gradually to take more random actions
+            # We reduced the epsilon gradually to take more random actions
             if epsilon > FINAL_EPSILON and t > OBSERVE:
                 epsilon -= (INITIAL_EPSILON - FINAL_EPSILON) / EXPLORE
-            #run the selected action and observed next state and reward
+            # run the selected action and observed next state and reward
             # We need to find the neighbors to the geohash that we started at
 
-            #Get the neighbors from the current geohash - convert back to string
+            #G et the neighbors from the current geohash - convert back to string
             current_geohash_string = self.list_of_inverse_heohash_index[s_geohash]
             neighbors = gh.neighbors(current_geohash_string)
             # Get the direction we should go
@@ -255,14 +262,15 @@ class RLNYCTaxiCab(object):
             possible_rewards = np.array(self.final_data_structure[s_time][new_geohash])
 
             if len (possible_rewards) ==0:
-                r_t = -.1 ## we do not have information for this time and geohash, don't go here. waste gass
-                fare_t = 0 ## no information so the fare = 0
-                s_time1 = s_time+10 ## assume this took ten minutes
+                r_t = -.1  # we do not have information for this time and geohash, don't go here. waste gass
+                fare_t = 0  # no information so the fare = 0
+                s_time1 = s_time+10  # assume this took ten minutes
             else:
-                r_t =  possible_rewards[np.random.randint(0,len(possible_rewards))][2] # get the ratio of fare / trip time
-                fare_t = possible_rewards[np.random.randint(0,len(possible_rewards))][0]
+                possible_rewards = np.random.randint(0,len(possible_rewards))
+                r_t =  possible_rewards[possible_rewards][2]  # get the ratio of fare / trip time
+                fare_t = possible_rewards[possible_rewards][0]
                 # get the trip length
-                s_time1 = s_time + possible_rewards[np.random.randint(0,len(possible_rewards))][1]
+                s_time1 = s_time + possible_rewards[possible_rewards][1]
                 #r_t = np.random.choice(possible_rewards)
             s_geohash1 = self.list_of_geohash_index[new_geohash]
 
@@ -306,42 +314,45 @@ class RLNYCTaxiCab(object):
                 D.popleft()
 
             ######### NEXT SEXTION #########
-            #only train if done observing
+            # only train if done observing
             if t > OBSERVE:
                 #sample a minibatch to train on
                 minibatch = random.sample(D, BATCH)
                 inputs = []
 
-                inputs = np.zeros((BATCH, s_t.shape[1]))   #16, 2
-                targets = np.zeros((inputs.shape[0], ACTIONS))       #16, 9
-                #Now we do the experience replay
-                for i in range(0, len(minibatch)): # 0 -15 for batch 16
+                inputs = np.zeros((BATCH, s_t.shape[1]))  # 16, 2
+                targets = np.zeros((inputs.shape[0], ACTIONS))  # 16, 9
+                # Now we do the experience replay
+                for i in range(0, len(minibatch)):  # 0 -15 for batch 16
                     s_time_t = minibatch[i][0]
                     s_geohash_t = minibatch[i][1]
-                    action_t = minibatch[i][2] # action index
+                    action_t = minibatch[i][2]  # action index
                     reward_t = minibatch[i][3]
                     s_time_t1 = minibatch[i][4]
                     s_geohash_t1 = minibatch[i][5]
                     terminal = minibatch[i][6]
                     # if terminated, only equals reward
                     for col in range(inputs.shape[1]-1):
-                        inputs[i,col] = s_time_t   #Save the time and geohash in the inputs to the model
+                        inputs[i,col] = s_time_t
+                        # Save the time and geohash in the inputs to the model
                         inputs[i,col+1] = s_geohash_t
 
                     state_t = np.array([[s_time_t, s_geohash_t]])
                     state_t1 = np.array([[s_time_t1,s_geohash_t1]])
 
-                    targets[i] = self.model_mlp.predict(state_t)  # update entire row
+                    targets[i] = self.model_mlp.predict(state_t)
+                    # update entire row
                     Q_sa = self.model_mlp.predict(state_t1)
-                    #print(Q_sa, ' Q function for a given state')
-                    if terminal==1: ## The day ended, pick a new starting geohash and time
+                    if terminal==1:
+                        # The day ended, pick a new starting geohash and time
                         targets[i, action_t] = reward_t
 
                     else:
-                        targets[i, action_t] = reward_t + GAMMA * np.max(Q_sa) ## exponential discounting for each memory
+                        targets[i, action_t] = reward_t + GAMMA * np.max(Q_sa)
+                        # exponential discounting for each memory
                 loss += self.model_mlp.train_on_batch(inputs, targets)
                 loss_list.append(loss)
-                if self.return_metrics == True:
+                if self.return_metrics is True:
                     # only record fares once we start training
                     total_fare_received += fare_t
                     total_fare_received_over_time.append(total_fare_received)
@@ -355,17 +366,19 @@ class RLNYCTaxiCab(object):
             else:
                 state = "train"
 
-            if save_model == True:
+            if save_model is True:
                 if t % 1000 == 0:
                     print("Now we save model")
-                    self.model_mlp.save_weights(args['save_model_weights'], overwrite=True)
+                    self.model_mlp.save_weights(args['save_model_weights'],
+                                                overwrite=True)
                     with open("model.json", "w") as outfile:
                         json.dump(self.model_mlp.to_json(), outfile)
 
             if t % 500 == 0:
                 print("TIMESTEP", t, "/ STATE", state, \
                 "/ EPSILON", epsilon, "/ ACTION", action_index, "/ REWARD", r_t, \
-                "/ Q_MAX " , np.max(Q_sa), "/ Loss ", loss, "/ Total fare RL ", total_fare_received,
+                "/ Q_MAX " , np.max(Q_sa), "/ Loss ", loss, "/ Total fare RL ",\
+                total_fare_received,
                 "/ Total fare naive", total_naive_fare)
                 now_time = time.time()
                 print('500 steps took {}'.format(now_time - start_time))
@@ -374,7 +387,8 @@ class RLNYCTaxiCab(object):
             if t ==training_length: ### end training
                 if self.return_metrics == True and save_model == True:
                     print("Now we save model")
-                    self.model_mlp.save_weights(args['save_model_weights'], overwrite=True)
+                    self.model_mlp.save_weights(args['save_model_weights'],
+                                                overwrite=True)
                     with open("model.json", "w") as outfile:
                         json.dump(self.model_mlp.to_json(), outfile)
                     return loss_list, total_fare_received_over_time, \
@@ -388,11 +402,12 @@ class RLNYCTaxiCab(object):
                     return self.training_data_X, self.training_data_y
                 elif save_model == True:
                     print("Now we save model")
-                    self.model_mlp.save_weights(args['save_model_weights'], overwrite=True)
+                    self.model_mlp.save_weights(args['save_model_weights'],
+                                                overwrite=True)
                     with open("model.json", "w") as outfile:
                         json.dump(self.model_mlp.to_json(), outfile)
                     break
-                else:# something weird happened
+                else:  # something weird happened
                     break
 
             # increment the state and time information
@@ -400,15 +415,24 @@ class RLNYCTaxiCab(object):
             s_geohash = s_geohash1
             if self.return_metrics == True:
                 list_of_geohashes_visited.append(starting_geohash)
-            starting_geohash = new_geohash## update the starting geohash in case we stay here
+            starting_geohash = new_geohash
+            # update the starting geohash in case we stay here
             t = t + 1
 
 def data_attributes(taxi_yellowcab_df):
-    """Some random data objects needed to train the RL algorithm"""
+    """Some random data objects needed to train the RL algorithm.
+    Includes a conversion from direction index (0-8) to a
+    direction (n,s,w,e,...etc). Therefore, we can use the
+    gh.neighbors attribute to find the geohashes associated with each
+    direction.
+    Also, has a dict for geohash : geohash_index
+    Contains a dict for geohash_index : geohash
+    Contains a list of all times
+    Contains a list of all unique geohashes"""
     list_of_output_predictions_to_direction =\
         {0:'nw',1:'n',2:'ne',3:'w',4:'stay',5:'e',6:'sw',7:'s',8:'se'}
     list_of_unique_geohashes = taxi_yellowcab_df.geohash_pickup.unique()
-    list_of_geohash_index  = defaultdict(int)
+    list_of_geohash_index = defaultdict(int)
     for idx,hash_n in enumerate(list_of_unique_geohashes):
         list_of_geohash_index [hash_n] = idx
     list_of_inverse_heohash_index = defaultdict(str)
@@ -417,7 +441,7 @@ def data_attributes(taxi_yellowcab_df):
     hours = [str(_) for _ in range(24)]
     minutes = [str(_) for _ in range(0,60,10)]
     minutes.append('00')
-    list_of_time_index =[]
+    list_of_time_index = []
     for h in hours:
         for m in minutes:
             list_of_time_index.append(int(str(h)+str(m)))
@@ -430,14 +454,14 @@ def data_attributes(taxi_yellowcab_df):
 if __name__ =="__main__":
     import gc; gc.collect()
 
-    with K.get_session(): ## TF session
-        #yopen up the data
+    with K.get_session(): # TF session
+        # open up the data
         taxi_yellowcab_df, final_data_structure= make_dataset.main()
-        ## the the data structures needed for the RL calss
+        # the the data structures needed for the RL calss
         list_of_output_predictions_to_direction, list_of_unique_geohashes, \
             list_of_geohash_index, list_of_time_index,list_of_inverse_heohash_index\
              = data_attributes(taxi_yellowcab_df)
-        #
+
         arg = {'mode':'Run','save_model':True,'model_weights_load':'model_mlp_linear.h5',
                'save_model_weights':'mlp_linear.h5'}
         train_rl_taxi = RLNYCTaxiCab(list_of_unique_geohashes,list_of_time_index,list_of_geohash_index,\

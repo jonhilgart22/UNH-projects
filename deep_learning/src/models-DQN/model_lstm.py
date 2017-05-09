@@ -17,21 +17,18 @@ from keras.layers import LSTM
 import time
 import sys
 import pickle
-#import auxiliary_functions, make_dataset
 from py_geohash_any import geohash as gh
 from keras import backend as K
 sys.path.insert(0, '../data')
 import auxiliary_functions, make_dataset
 from auxiliary_functions import convert_miles_to_minutes_nyc, list_of_output_predictions_to_direction
-#sys.path.insert(0, '../src/models-DQN')
-#from model_mlp import RLNYCTaxiCab
 
 from auxiliary_functions import convert_miles_to_minutes_nyc, \
     list_of_output_predictions_to_direction
 __author__ = 'Jonathan Hilgart'
 
 
- #parameters
+# parameters
 ACTIONS = 9 # number of valid actions
 GAMMA = 0.99 # decay rate of past observations
 OBSERVATION = 10000. # timesteps to observe before training
@@ -48,10 +45,15 @@ LEARNING_RATE = 1e-1
 class RLNYCTaxiCabLargeNetwork_LSTM(object):
     """Creates an lstm model with DQN to train on NYC taxi data from January 2016.
     Due to experience replay, this model is not trained on a sequence of data,
-    but rather on different 'memories' of state transition reward pairs experienced."""
+    but rather on different 'memories' of state transition reward pairs experienced.
+
+    However, during testing a sequence of data will be accumulated (as you experience)
+    states over time. Therefore, the longer you 'test' this model, the better
+    you should perform (as indicated by the notebook visualizations)"""
 
     def __init__(self, list_of_unique_geohashes,list_of_time_index, list_of_geohash_index,
                 list_of_inverse_heohash_index, final_data_structure, return_metrics=False):
+        """Store the data attributes to train the rL algorithm"""
         self.list_of_unique_geohashes = list_of_unique_geohashes
         self.list_of_time_index = list_of_time_index
         self. list_of_geohash_index =  list_of_geohash_index
@@ -62,8 +64,10 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
 
 
     def build_lstm_model(self):
-        """Build a simpleLSTM model choosen by hyperparameter selection from hyperas.
-        Input  time follwoed by the  geohash index. """
+        """Build a STM model choosen by hyperparameter selection from hyperas.
+        Input  time follwoed by the  geohash index for prediction.
+        Total parameters = ~7.8 million
+        500 epochs takes about 20 minutes"""
         model_lstm = Sequential()
         model_lstm .add(LSTM( 512, dropout=.24,
                              batch_input_shape=(1,None, 2),
@@ -85,15 +89,16 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
                       historic_current_fare = None):
         """Assign the same probability to every state and keep track of the total fare received,
          total fare over time,
-        and geohashes visited"""
+        and geohashes visited.
 
-        ## parameters to track where we are and at what time
+        Ensures tha the starting geohash and the time is the same between the
+        Naive approach and the RL approach"""
+        # parameters to track where we are and at what time
         starting_geohash = starting_geo
         s_time = s_time_
         s_geohash = s_geohash_
         list_of_geohashes_visited = []
-
-        ## check and see if we have old fare to continue adding to
+        # check and see if we have old fare to continue adding to
         if input_fare_list == None:
             total_fare = 0
             total_fare_over_time = []
@@ -114,30 +119,36 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
             direction_to_move_to = list_of_output_predictions_to_direction[action_index]
             # Get the geohash of the direction we moved to
             if direction_to_move_to =='stay':
-                new_geohash = starting_geohash # stay in current geohash, get the index of said geohash
+                new_geohash = starting_geohash
+                # stay in current geohash, get the index of said geohash
                 possible_rewards = np.array(self.final_data_structure[s_time][new_geohash])
                 # hash with the letters  of the geohash above
                 new_geohash = self.list_of_geohash_index[starting_geohash]
             else:
-                new_geohash = neighbors[direction_to_move_to]## give us the geohash to move to next
+                new_geohash = neighbors[direction_to_move_to]
+                # give us the geohash to move to next
 
             # get the reward of the geohash we just moved to (this is the ratio of fare /time of trip)
             # time, geohash, list of tuple ( fare, time ,ratio)
             possible_rewards = np.array(self.final_data_structure[s_time][new_geohash])
 
             if len (possible_rewards) ==0:
-                r_t = -.1  # we do not have information for this time and geohash, don't go here. waste gass
+                r_t = -.1
+                # we do not have information for this time and geohash,
+                #  don't go here. waste gass
                 fare_t = 0  # no information so the fare = 0
                 s_time1 = s_time+10  # assume this took ten minutes
             else:
                 reward_option = np.random.randint(0,len(possible_rewards))
-                r_t =  possible_rewards[reward_option][2] # get the ratio of fare / trip time
+                r_t =  possible_rewards[reward_option][2]
+                # get the ratio of fare / trip time
                 fare_t = possible_rewards[reward_option][0]
                 # get the trip length
                 s_time1 = s_time + possible_rewards[reward_option][1]
             s_geohash1 = self.list_of_geohash_index[new_geohash]
             # store the transition in D
-            if s_time1 <= 2350: # The last possible time for a trip
+            if s_time1 <= 2350:
+                 # The last possible time for a trip
                 terminal = 0
                  # get the naive implementation per day
             else:  # the day is over, pick a new starting geohash and time
@@ -149,7 +160,8 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
             # increment the state and time information
             s_time = s_time1
             s_geohash = s_geohash1
-            starting_geohash = new_geohash## update the starting geohash in case we stay here
+            starting_geohash = new_geohash
+            # update the starting geohash in case we stay here
         return total_fare, total_fare_over_time, list_of_geohashes_visited
 
 
@@ -166,7 +178,15 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
         for the DQN algorithm. Due to the large size of the input features,
         you need to train for a long time (1-2million iterations)
 
-        Uses an LSTM network to predict the moves to make."""
+        Uses an LSTM network to predict the moves to make.
+
+        LSTMs are the most powerful when learning from a sequence of data. However,
+        in DQN experience replay is used which samples random 'memories'
+        of state action reward pairs that have previously been seen. This
+        results in LSTM NOT being trained on a sequence of data which
+        may have reduced the effecitveness of this architecture.
+
+        Returns fare over time, naive fare over time, geohashes visited."""
 
         self.return_training_data = return_training_data
         # store the previous observations in replay memory
@@ -245,24 +265,30 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
             direction_to_move_to = list_of_output_predictions_to_direction[action_index]
             # Get the geohash of the direction we moved to
             if direction_to_move_to =='stay':
-                new_geohash = starting_geohash # stay in current geohash, get the index of said geohash
+                new_geohash = starting_geohash
+                # stay in current geohash, get the index of said geohash
                 possible_rewards = np.array(self.final_data_structure[s_time][new_geohash])
                 # hash with the letters  of the geohash above
                 new_geohash = self.list_of_geohash_index[starting_geohash]
             else:
-                new_geohash = neighbors[direction_to_move_to]  # give us the geohash to move to next
+                new_geohash = neighbors[direction_to_move_to]
+                # give us the geohash to move to next
 
             # get the reward of the geohash we just moved to (this is the ratio of fare /time of trip)
             # time, geohash, list of tuple ( fare, time ,ratio)
             possible_rewards = np.array(self.final_data_structure[s_time][new_geohash])
 
             if len (possible_rewards) ==0:
-                r_t = -.1 ## we do not have information for this time and geohash, don't go here. waste gass
-                fare_t = 0 ## no information so the fare = 0
-                s_time1 = s_time+10 ## assume this took ten minutes
+                r_t = -.1
+                # we do not have information for this time and geohash, don't go here. waste gass
+                fare_t = 0
+                # no information so the fare = 0
+                s_time1 = s_time+10
+                # assume this took ten minutes
             else:
                 reward_option = np.random.randint(0,len(possible_rewards))
-                r_t =  possible_rewards[reward_option][2] # get the ratio of fare / trip time
+                r_t =  possible_rewards[reward_option][2]
+                # get the ratio of fare / trip time
                 fare_t = possible_rewards[reward_option][0]
                 # get the trip length
                 s_time1 = s_time + possible_rewards[reward_option][1]
@@ -271,7 +297,7 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
             # store the transition in D
             if s_time1 <= 2350: # The last possible time for a trip
                 terminal = 0
-            else: # the day is over, pick a new starting geohash and time
+            else:  # the day is over, pick a new starting geohash and time
                 print('We finished a day!')
                 terminal = 1
                 total_days_driven +=1
@@ -280,10 +306,11 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
                 s_geohash1 =   self.list_of_geohash_index[np.random.choice(
                     self.list_of_unique_geohashes)]
                 # Chech the naive approach to the new geohashes and time
-                if self.return_metrics == False: ## don't benchmark to the naive approach
+                if self.return_metrics is False:
+                    # don't benchmark to the naive approach
                     pass
                 else:
-                    if t > OBSERVE: # only record after observations
+                    if t > OBSERVE:  # only record after observations
                         total_naive_fare, total_naive_fare_over_time, naive_geohashes_visited = \
                         self.NaiveApproach(s_time1, s_geohash1,
                             starting_geohash, total_naive_fare_over_time,total_naive_fare )
@@ -292,8 +319,8 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
             # time, geohash, action index, reward, time1, geohash 1, terminal
             D.append((s_time,s_geohash, action_index, r_t, s_time1, s_geohash1, terminal))
 
-            if return_training_data  == True: # append training data
-                if r_t >0: ## normalize the values for hyperas
+            if return_training_data  is True:  # append training data
+                if r_t >0:  # normalize the values for hyperas
                     self.training_data_X[t,:] = np.array([s_time, s_geohash])
                     self.training_data_y[t,action_index] = np.array([r_t])
                 else:
@@ -301,31 +328,29 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
                     # action index for the reward
                     self.training_data_y[t,action_index] = r_t
 
-
             if len(D) > REPLAY_MEMORY:  # don't store a huge replay memory
                 D.popleft()
-
             ######### NEXT SEXTION #########
             # only train if done observing
             if t > OBSERVE:
-                #sample a minibatch to train on
+                # sample a minibatch to train on
                 minibatch = random.sample(D, BATCH)
                 inputs = []
-
-                inputs = np.zeros((BATCH, 2))   #16, 2
-                targets = np.zeros((inputs.shape[0], ACTIONS))       #16, 9
+                inputs = np.zeros((BATCH, 2))
+                targets = np.zeros((inputs.shape[0], ACTIONS))
                 # Now we do the experience replay
                 for i in range(0, len(minibatch)): # 0 -15 for batch 16
                     s_time_t = minibatch[i][0]
                     s_geohash_t = minibatch[i][1]
-                    action_t = minibatch[i][2] # action index
+                    action_t = minibatch[i][2]  # action index
                     reward_t = minibatch[i][3]
                     s_time_t1 = minibatch[i][4]
                     s_geohash_t1 = minibatch[i][5]
                     terminal = minibatch[i][6]
                     # if terminated, only equals reward
                     for col in range(inputs.shape[1]-1):
-                        inputs[i,col] = s_time_t   #Save the time and geohash in the inputs to the model
+                        inputs[i,col] = s_time_t
+                        # Save the time and geohash in the inputs to the model
                         inputs[i,col+1] = s_geohash_t
 
                     state_t = np.array([[s_time_t, s_geohash_t]]).reshape(1,1,2)
@@ -333,11 +358,13 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
 
                     targets[i] = self.model_lstm.predict(state_t)  # update entire row
                     Q_sa = self.model_lstm.predict(state_t1)
-                    if terminal==1: ## The day ended, pick a new starting geohash and time
+                    if terminal==1:
+                        # The day ended, pick a new starting geohash and time
                         targets[i, action_t] = reward_t
 
                     else:
-                        targets[i, action_t] = reward_t + GAMMA * np.max(Q_sa) ## exponential discounting for each memory
+                        targets[i, action_t] = reward_t + GAMMA * np.max(Q_sa)
+                        # exponential discounting for each memory
                 inputs = inputs.reshape(1,BATCH,2)
                 targets = targets.reshape(1,BATCH,9)
 
@@ -395,7 +422,8 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
                     with open("model_lstm.json", "w") as outfile:
                         json.dump(self.model_lstm.to_json(), outfile)
                     break
-                else:# something weird happened
+                else:
+                    # something weird happened
                     break
 
             # increment the state and time information
@@ -403,11 +431,20 @@ class RLNYCTaxiCabLargeNetwork_LSTM(object):
             s_geohash = s_geohash1
             if self.return_metrics == True:
                 list_of_geohashes_visited.append(starting_geohash)
-            starting_geohash = new_geohash## update the starting geohash in case we stay here
+            starting_geohash = new_geohash
+            # update the starting geohash in case we stay here
             t = t + 1
 
 def data_attributes(taxi_yellowcab_df):
-    """Some random data objects needed to train the RL algorithm"""
+    """Some random data objects needed to train the RL algorithm.
+    Includes a conversion from direction index (0-8) to a
+    direction (n,s,w,e,...etc). Therefore, we can use the
+    gh.neighbors attribute to find the geohashes associated with each
+    direction.
+    Also, has a dict for geohash : geohash_index
+    Contains a dict for geohash_index : geohash
+    Contains a list of all times
+    Contains a list of all unique geohashes"""
     list_of_output_predictions_to_direction =\
         {0:'nw',1:'n',2:'ne',3:'w',4:'stay',5:'e',6:'sw',7:'s',8:'se'}
     list_of_unique_geohashes = taxi_yellowcab_df.geohash_pickup.unique()
