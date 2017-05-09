@@ -49,6 +49,8 @@ Project Organization
     │       └── plotting_geohashes.py   <- A script to see a heatmap of fares over time for January for NYC taxis
     │
     └── tox.ini            <- tox file with settings for running tox; see tox.testrun.org
+    └── Deep_Learning      <- PowerPoint used to present the results
+
 
 
 --------
