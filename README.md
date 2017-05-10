@@ -21,3 +21,7 @@ Index
 
 
 - 6) *Data_Leadership*: outlines the final business case presentation we completed. This case looked at a hospital chain to understand, and make recommendations, for how to reduce patient readmissions. (Data Science ROI, Cost Benefit Analysis, Managerial Clustering, Pandas, Sklearn)  
+
+**Semester Four**
+
+- 7) *Deep Learning*: contains an analysis of using reinforcement learning to maximize a daily taxicab drivers revenue in NYC. (Deep Q-Learning, Actor-Critic, Keras, Tensorflow, GPU, )
