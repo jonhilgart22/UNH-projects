@@ -24,4 +24,4 @@ Index
 
 **Semester Four**
 
-- 7) *Deep Learning*: contains an analysis of using reinforcement learning to maximize a daily taxicab drivers revenue in NYC. (Deep Q-Learning, Actor-Critic, Keras, Tensorflow, GPU)
+- 7) *Deep Learning*: contains an analysis of using reinforcement learning to maximize a daily taxicab driver's revenue in NYC. (Deep Q-Learning, Actor-Critic, Keras, Tensorflow, GPUs)
