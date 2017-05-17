@@ -1,0 +1,1233 @@
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
+W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
+/Users/jonathanhilgart/anaconda/envs/dl/lib/python3.6/site-packages/hyperas/optim.py
+/Users/jonathanhilgart/anaconda/envs/dl/lib/python3.6/site-packages/hyperas/optim.py
+/Users/jonathanhilgart/anaconda/envs/dl/lib/python3.6/site-packages/hyperas/optim.py
+hyperparameter_optimization_lstm.py
+>>> Imports:
+from __future__ import print_function
+
+try:
+    from hyperopt import Trials, STATUS_OK, tpe
+except:
+    pass
+
+try:
+    from keras.datasets import mnist
+except:
+    pass
+
+try:
+    from keras.layers.core import Dense, Dropout, Activation
+except:
+    pass
+
+try:
+    from keras.models import Sequential
+except:
+    pass
+
+try:
+    from keras.utils import np_utils
+except:
+    pass
+
+try:
+    import numpy
+except:
+    pass
+
+try:
+    from hyperas import optim
+except:
+    pass
+
+try:
+    from keras.models import model_from_json
+except:
+    pass
+
+try:
+    from keras.models import Sequential
+except:
+    pass
+
+try:
+    from keras.layers.core import Dense, Dropout, Activation, Flatten
+except:
+    pass
+
+try:
+    from keras.layers import LSTM
+except:
+    pass
+
+try:
+    from keras.optimizers import SGD, Adam
+except:
+    pass
+
+try:
+    import tensorflow
+except:
+    pass
+
+try:
+    import keras.backend
+except:
+    pass
+
+try:
+    from hyperas.distributions import choice, uniform, conditional
+except:
+    pass
+
+try:
+    from keras.layers.normalization import BatchNormalization
+except:
+    pass
+
+try:
+    import numpy
+except:
+    pass
+
+try:
+    import gc
+except:
+    pass
+
+>>> Hyperas search space:
+
+def get_space():
+    return {
+        'LSTM': hp.choice('LSTM', [64, 126, 256, 512, 1024]),
+        'dropout': hp.uniform('dropout', 0, .5),
+        'dropout_1': hp.uniform('dropout_1', 0, .5),
+        'conditional': hp.choice('conditional', ['one','two','three', 'four']),
+        'LSTM_1': hp.choice('LSTM_1', [64, 126, 256, 512, 1024]),
+        'dropout_2': hp.uniform('dropout_2', 0, .5),
+        'dropout_3': hp.uniform('dropout_3', 0, .5),
+        'LSTM_2': hp.choice('LSTM_2', [64, 126, 256, 512, 1024]),
+        'dropout_4': hp.uniform('dropout_4', 0, .5),
+        'dropout_5': hp.uniform('dropout_5', 0, .5),
+        'Dense': hp.choice('Dense', [126, 256, 512, 1024]),
+        'Activation': hp.choice('Activation', ['relu','tanh','sigmoid']),
+        'LSTM_3': hp.choice('LSTM_3', [64, 126, 256, 512, 1024]),
+        'dropout_6': hp.uniform('dropout_6', 0, .5),
+        'dropout_7': hp.uniform('dropout_7', 0, .5),
+        'Dense_1': hp.choice('Dense_1', [126, 256, 512, 1024]),
+        'Activation_1': hp.choice('Activation_1', ['relu','tanh','sigmoid']),
+        'Dense_2': hp.choice('Dense_2', [126, 256, 512, 1024]),
+        'Activation_2': hp.choice('Activation_2', ['relu','tanh','sigmoid']),
+    }
+
+>>> Data
+  1: 
+  2: """
+  3: Data providing function:
+  4: 
+  5: This function is separated from model() so that hyperopt
+  6: won't reload data for each evaluation run.
+  7: """
+  8: import numpy as np
+  9: x = np.load('training_x.npy')
+ 10: x = x.reshape(1,15000,2)
+ 11: y = np.load('training_y.npy')
+ 12: y = y.reshape(1,15000, 9)
+ 13: x_train ,x_test  = np.split(x,2, axis=1)
+ 14: y_train , y_test= np.split(y,2, axis=1)
+ 15: 
+ 16: 
+ 17: 
+ 18: 
+>>> Resulting replaced keras model:
+
+   1: def keras_fmin_fnct(space):
+   2: 
+   3:     """
+   4:     Model providing function:
+   5: 
+   6:     Create Keras model with double curly brackets dropped-in as needed.
+   7:     Return value has to be a valid python dictionary with two customary keys:
+   8:         - loss: Specify a numeric evaluation metric to be minimized
+   9:         - status: Just use STATUS_OK and see hyperopt documentation if not feasible
+  10:     The last one is optional, though recommended, namely:
+  11:         - model: specify the model just created so that we can later use it again.
+  12:     """
+  13:     model_lstm = Sequential()
+  14:     model_lstm .add(LSTM(space['LSTM'], dropout=space['dropout'],
+  15:                          batch_input_shape=(1,x_train.shape[1], 2),
+  16:                      recurrent_dropout=space['dropout_1'],return_sequences = True))
+  17:     model_lstm.add(BatchNormalization())
+  18:     condition = conditional(space['conditional'])
+  19: 
+  20:     if condition == 'one':
+  21:         pass
+  22:     elif condition == 'two':
+  23:         model_lstm .add(LSTM(space['LSTM_1'], dropout=space['dropout_2'],
+  24:                      recurrent_dropout=space['dropout_3'],
+  25:                      return_sequences = True))
+  26:         model_lstm.add(BatchNormalization())
+  27:     elif condition  == 'three':
+  28:         model_lstm .add(LSTM(space['LSTM_2'], dropout=space['dropout_4'],
+  29:                      recurrent_dropout=space['dropout_5'],
+  30:                      return_sequences = True))
+  31:         model_lstm.add(BatchNormalization())
+  32:         model_lstm.add(Dense(space['Dense']))
+  33:         model_lstm.add(BatchNormalization())
+  34:         model_lstm.add(Activation(space['Activation']))
+  35:     elif condition == 'four':
+  36:         model_lstm .add(LSTM(space['LSTM_3'], dropout=space['dropout_6'],
+  37:                      recurrent_dropout=space['dropout_7'],
+  38:                      return_sequences = True))
+  39:         model_lstm.add(BatchNormalization())
+  40:         model_lstm.add(Dense(space['Dense_1']))
+  41:         model_lstm.add(BatchNormalization())
+  42:         model_lstm.add(Activation(space['Activation_1']))
+  43:         model_lstm.add(Dense(space['Dense_2'], activation='relu'))
+  44:         model_lstm.add(BatchNormalization())
+  45:         model_lstm.add(Activation(space['Activation_2']))
+  46: 
+  47: 
+  48:     model_lstm .add(Dense(9, activation='linear',name='dense_output'))
+  49:     adam = Adam(clipnorm=.5, clipvalue=.5)
+  50:     model_lstm .compile(loss='mean_squared_error', optimizer=adam,
+  51:                         metrics=['accuracy'])
+  52:     model_lstm.summary()
+  53: 
+  54: 
+  55: 
+  56:     model_lstm.fit(x_train, y_train,
+  57:               batch_size=1,
+  58:               epochs=1,
+  59:               verbose=1,
+  60:               validation_data=(x_test, y_test))
+  61:     loss, acc = model_lstm.evaluate(x_test, y_test, verbose=0)
+  62: 
+  63:     print('Test accuracy:', acc)
+  64:     return {'loss': -acc, 'status': STATUS_OK, 'model': model_lstm}
+  65: 
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_1 (LSTM)                (1, 7500, 64)             17152     
+_________________________________________________________________
+batch_normalization_1 (Batch (1, 7500, 64)             256       
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              585       
+=================================================================
+Total params: 17,993.0
+Trainable params: 17,865
+Non-trainable params: 128.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 20s - loss: 0.1409 - acc: 0.6508 - val_loss: 0.5415 - val_acc: 0.0373
+Test accuracy: 0.0373333320022
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_2 (LSTM)                (1, 7500, 512)            1054720   
+_________________________________________________________________
+batch_normalization_2 (Batch (1, 7500, 512)            2048      
+_________________________________________________________________
+lstm_3 (LSTM)                (1, 7500, 1024)           6295552   
+_________________________________________________________________
+batch_normalization_3 (Batch (1, 7500, 1024)           4096      
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              9225      
+=================================================================
+Total params: 7,365,641.0
+Trainable params: 7,362,569
+Non-trainable params: 3,072.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 138s - loss: 1.8096 - acc: 0.1492 - val_loss: 0.2146 - val_acc: 0.0127
+Test accuracy: 0.0126666668802
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_4 (LSTM)                (1, 7500, 512)            1054720   
+_________________________________________________________________
+batch_normalization_4 (Batch (1, 7500, 512)            2048      
+_________________________________________________________________
+lstm_5 (LSTM)                (1, 7500, 126)            322056    
+_________________________________________________________________
+batch_normalization_5 (Batch (1, 7500, 126)            504       
+_________________________________________________________________
+dense_1 (Dense)              (1, 7500, 126)            16002     
+_________________________________________________________________
+batch_normalization_6 (Batch (1, 7500, 126)            504       
+_________________________________________________________________
+activation_1 (Activation)    (1, 7500, 126)            0         
+_________________________________________________________________
+dense_2 (Dense)              (1, 7500, 512)            65024     
+_________________________________________________________________
+batch_normalization_7 (Batch (1, 7500, 512)            2048      
+_________________________________________________________________
+activation_2 (Activation)    (1, 7500, 512)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              4617      
+=================================================================
+Total params: 1,467,523.0
+Trainable params: 1,464,971.0
+Non-trainable params: 2,552.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 52s - loss: 1.6726 - acc: 0.1352 - val_loss: 0.1100 - val_acc: 0.4772
+Test accuracy: 0.477200001478
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_6 (LSTM)                (1, 7500, 512)            1054720   
+_________________________________________________________________
+batch_normalization_8 (Batch (1, 7500, 512)            2048      
+_________________________________________________________________
+lstm_7 (LSTM)                (1, 7500, 126)            322056    
+_________________________________________________________________
+batch_normalization_9 (Batch (1, 7500, 126)            504       
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              1143      
+=================================================================
+Total params: 1,380,471.0
+Trainable params: 1,379,195
+Non-trainable params: 1,276.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 50s - loss: 1.8805 - acc: 0.0636 - val_loss: 0.1508 - val_acc: 0.5384
+Test accuracy: 0.538399994373
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_8 (LSTM)                (1, 7500, 126)            65016     
+_________________________________________________________________
+batch_normalization_10 (Batc (1, 7500, 126)            504       
+_________________________________________________________________
+lstm_9 (LSTM)                (1, 7500, 256)            392192    
+_________________________________________________________________
+batch_normalization_11 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+dense_3 (Dense)              (1, 7500, 1024)           263168    
+_________________________________________________________________
+batch_normalization_12 (Batc (1, 7500, 1024)           4096      
+_________________________________________________________________
+activation_3 (Activation)    (1, 7500, 1024)           0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              9225      
+=================================================================
+Total params: 735,225.0
+Trainable params: 732,413.0
+Non-trainable params: 2,812.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 47s - loss: 0.8328 - acc: 0.1179 - val_loss: 0.2801 - val_acc: 0.0361
+Test accuracy: 0.0361333340406
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_10 (LSTM)               (1, 7500, 126)            65016     
+_________________________________________________________________
+batch_normalization_13 (Batc (1, 7500, 126)            504       
+_________________________________________________________________
+lstm_11 (LSTM)               (1, 7500, 256)            392192    
+_________________________________________________________________
+batch_normalization_14 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+dense_4 (Dense)              (1, 7500, 1024)           263168    
+_________________________________________________________________
+batch_normalization_15 (Batc (1, 7500, 1024)           4096      
+_________________________________________________________________
+activation_4 (Activation)    (1, 7500, 1024)           0         
+_________________________________________________________________
+dense_5 (Dense)              (1, 7500, 256)            262400    
+_________________________________________________________________
+batch_normalization_16 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+activation_5 (Activation)    (1, 7500, 256)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              2313      
+=================================================================
+Total params: 991,737.0
+Trainable params: 988,413.0
+Non-trainable params: 3,324.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 45s - loss: 1.2985 - acc: 0.1441 - val_loss: 0.1096 - val_acc: 0.0319
+Test accuracy: 0.0318666659296
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_12 (LSTM)               (1, 7500, 64)             17152     
+_________________________________________________________________
+batch_normalization_17 (Batc (1, 7500, 64)             256       
+_________________________________________________________________
+lstm_13 (LSTM)               (1, 7500, 64)             33024     
+_________________________________________________________________
+batch_normalization_18 (Batc (1, 7500, 64)             256       
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              585       
+=================================================================
+Total params: 51,273.0
+Trainable params: 51,017
+Non-trainable params: 256.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 39s - loss: 1.4183 - acc: 0.1753 - val_loss: 0.1825 - val_acc: 0.0357
+Test accuracy: 0.0357333347201
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_14 (LSTM)               (1, 7500, 1024)           4206592   
+_________________________________________________________________
+batch_normalization_19 (Batc (1, 7500, 1024)           4096      
+_________________________________________________________________
+lstm_15 (LSTM)               (1, 7500, 256)            1311744   
+_________________________________________________________________
+batch_normalization_20 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              2313      
+=================================================================
+Total params: 5,525,769.0
+Trainable params: 5,523,209
+Non-trainable params: 2,560.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 127s - loss: 1.9197 - acc: 0.0917 - val_loss: 0.3415 - val_acc: 0.0052
+Test accuracy: 0.00520000001416
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_16 (LSTM)               (1, 7500, 64)             17152     
+_________________________________________________________________
+batch_normalization_21 (Batc (1, 7500, 64)             256       
+_________________________________________________________________
+lstm_17 (LSTM)               (1, 7500, 126)            96264     
+_________________________________________________________________
+batch_normalization_22 (Batc (1, 7500, 126)            504       
+_________________________________________________________________
+dense_6 (Dense)              (1, 7500, 256)            32512     
+_________________________________________________________________
+batch_normalization_23 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+activation_6 (Activation)    (1, 7500, 256)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              2313      
+=================================================================
+Total params: 150,025.0
+Trainable params: 149,133.0
+Non-trainable params: 892.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 42s - loss: 1.1808 - acc: 0.4351 - val_loss: 0.1205 - val_acc: 0.6392
+Test accuracy: 0.639199972153
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_18 (LSTM)               (1, 7500, 64)             17152     
+_________________________________________________________________
+batch_normalization_24 (Batc (1, 7500, 64)             256       
+_________________________________________________________________
+lstm_19 (LSTM)               (1, 7500, 256)            328704    
+_________________________________________________________________
+batch_normalization_25 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              2313      
+=================================================================
+Total params: 349,449.0
+Trainable params: 348,809
+Non-trainable params: 640.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 43s - loss: 1.3580 - acc: 0.0639 - val_loss: 0.1343 - val_acc: 0.0516
+Test accuracy: 0.0516000017524
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_20 (LSTM)               (1, 7500, 256)            265216    
+_________________________________________________________________
+batch_normalization_26 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+lstm_21 (LSTM)               (1, 7500, 512)            1574912   
+_________________________________________________________________
+batch_normalization_27 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              4617      
+=================================================================
+Total params: 1,847,817.0
+Trainable params: 1,846,281
+Non-trainable params: 1,536.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 54s - loss: 1.7846 - acc: 0.0932 - val_loss: 0.1811 - val_acc: 0.0347
+Test accuracy: 0.0346666648984
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_22 (LSTM)               (1, 7500, 256)            265216    
+_________________________________________________________________
+batch_normalization_28 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+lstm_23 (LSTM)               (1, 7500, 256)            525312    
+_________________________________________________________________
+batch_normalization_29 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+dense_7 (Dense)              (1, 7500, 1024)           263168    
+_________________________________________________________________
+batch_normalization_30 (Batc (1, 7500, 1024)           4096      
+_________________________________________________________________
+activation_7 (Activation)    (1, 7500, 1024)           0         
+_________________________________________________________________
+dense_8 (Dense)              (1, 7500, 256)            262400    
+_________________________________________________________________
+batch_normalization_31 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+activation_8 (Activation)    (1, 7500, 256)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              2313      
+=================================================================
+Total params: 1,325,577.0
+Trainable params: 1,321,993.0
+Non-trainable params: 3,584.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 45s - loss: 0.5814 - acc: 0.0265 - val_loss: 0.4292 - val_acc: 0.0000e+00
+Test accuracy: 0.0
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_24 (LSTM)               (1, 7500, 126)            65016     
+_________________________________________________________________
+batch_normalization_32 (Batc (1, 7500, 126)            504       
+_________________________________________________________________
+lstm_25 (LSTM)               (1, 7500, 512)            1308672   
+_________________________________________________________________
+batch_normalization_33 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+dense_9 (Dense)              (1, 7500, 512)            262656    
+_________________________________________________________________
+batch_normalization_34 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+activation_9 (Activation)    (1, 7500, 512)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              4617      
+=================================================================
+Total params: 1,645,561.0
+Trainable params: 1,643,261.0
+Non-trainable params: 2,300.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 60s - loss: 0.7007 - acc: 0.0608 - val_loss: 0.3522 - val_acc: 0.0476
+Test accuracy: 0.0476000010967
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_26 (LSTM)               (1, 7500, 512)            1054720   
+_________________________________________________________________
+batch_normalization_35 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+lstm_27 (LSTM)               (1, 7500, 126)            322056    
+_________________________________________________________________
+batch_normalization_36 (Batc (1, 7500, 126)            504       
+_________________________________________________________________
+dense_10 (Dense)             (1, 7500, 512)            65024     
+_________________________________________________________________
+batch_normalization_37 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+activation_10 (Activation)   (1, 7500, 512)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              4617      
+=================================================================
+Total params: 1,451,017.0
+Trainable params: 1,448,717.0
+Non-trainable params: 2,300.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 51s - loss: 1.1525 - acc: 0.1828 - val_loss: 0.1273 - val_acc: 0.3347
+Test accuracy: 0.334666669369
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_28 (LSTM)               (1, 7500, 64)             17152     
+_________________________________________________________________
+batch_normalization_38 (Batc (1, 7500, 64)             256       
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              585       
+=================================================================
+Total params: 17,993.0
+Trainable params: 17,865
+Non-trainable params: 128.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 20s - loss: 1.1061 - acc: 0.0871 - val_loss: 0.4593 - val_acc: 0.0935
+Test accuracy: 0.0934666693211
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_29 (LSTM)               (1, 7500, 256)            265216    
+_________________________________________________________________
+batch_normalization_39 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              2313      
+=================================================================
+Total params: 268,553.0
+Trainable params: 268,041
+Non-trainable params: 512.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 22s - loss: 0.5370 - acc: 0.2067 - val_loss: 0.5101 - val_acc: 0.0285
+Test accuracy: 0.0285333339125
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_30 (LSTM)               (1, 7500, 64)             17152     
+_________________________________________________________________
+batch_normalization_40 (Batc (1, 7500, 64)             256       
+_________________________________________________________________
+lstm_31 (LSTM)               (1, 7500, 126)            96264     
+_________________________________________________________________
+batch_normalization_41 (Batc (1, 7500, 126)            504       
+_________________________________________________________________
+dense_11 (Dense)             (1, 7500, 512)            65024     
+_________________________________________________________________
+batch_normalization_42 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+activation_11 (Activation)   (1, 7500, 512)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              4617      
+=================================================================
+Total params: 185,865.0
+Trainable params: 184,461.0
+Non-trainable params: 1,404.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 43s - loss: 0.7958 - acc: 0.1021 - val_loss: 0.1113 - val_acc: 0.0301
+Test accuracy: 0.0301333330572
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_32 (LSTM)               (1, 7500, 1024)           4206592   
+_________________________________________________________________
+batch_normalization_43 (Batc (1, 7500, 1024)           4096      
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              9225      
+=================================================================
+Total params: 4,219,913.0
+Trainable params: 4,217,865
+Non-trainable params: 2,048.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 98s - loss: 1.4852 - acc: 0.0852 - val_loss: 0.3860 - val_acc: 0.0456
+Test accuracy: 0.0456000007689
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_33 (LSTM)               (1, 7500, 512)            1054720   
+_________________________________________________________________
+batch_normalization_44 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+lstm_34 (LSTM)               (1, 7500, 1024)           6295552   
+_________________________________________________________________
+batch_normalization_45 (Batc (1, 7500, 1024)           4096      
+_________________________________________________________________
+dense_12 (Dense)             (1, 7500, 512)            524800    
+_________________________________________________________________
+batch_normalization_46 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+activation_12 (Activation)   (1, 7500, 512)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              4617      
+=================================================================
+Total params: 7,887,881.0
+Trainable params: 7,883,785.0
+Non-trainable params: 4,096.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 135s - loss: 1.0439 - acc: 0.6395 - val_loss: 0.7240 - val_acc: 0.6715
+Test accuracy: 0.671466648579
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_35 (LSTM)               (1, 7500, 512)            1054720   
+_________________________________________________________________
+batch_normalization_47 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+lstm_36 (LSTM)               (1, 7500, 256)            787456    
+_________________________________________________________________
+batch_normalization_48 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+dense_13 (Dense)             (1, 7500, 512)            131584    
+_________________________________________________________________
+batch_normalization_49 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+activation_13 (Activation)   (1, 7500, 512)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              4617      
+=================================================================
+Total params: 1,983,497.0
+Trainable params: 1,980,937.0
+Non-trainable params: 2,560.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 55s - loss: 1.3271 - acc: 0.1103 - val_loss: 0.1497 - val_acc: 0.0187
+Test accuracy: 0.0186666660011
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_37 (LSTM)               (1, 7500, 64)             17152     
+_________________________________________________________________
+batch_normalization_50 (Batc (1, 7500, 64)             256       
+_________________________________________________________________
+lstm_38 (LSTM)               (1, 7500, 1024)           4460544   
+_________________________________________________________________
+batch_normalization_51 (Batc (1, 7500, 1024)           4096      
+_________________________________________________________________
+dense_14 (Dense)             (1, 7500, 256)            262400    
+_________________________________________________________________
+batch_normalization_52 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+activation_14 (Activation)   (1, 7500, 256)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              2313      
+=================================================================
+Total params: 4,747,785.0
+Trainable params: 4,745,097.0
+Non-trainable params: 2,688.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 118s - loss: 0.6151 - acc: 0.0209 - val_loss: 0.4336 - val_acc: 0.0516
+Test accuracy: 0.0516000017524
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_39 (LSTM)               (1, 7500, 512)            1054720   
+_________________________________________________________________
+batch_normalization_53 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+lstm_40 (LSTM)               (1, 7500, 1024)           6295552   
+_________________________________________________________________
+batch_normalization_54 (Batc (1, 7500, 1024)           4096      
+_________________________________________________________________
+dense_15 (Dense)             (1, 7500, 256)            262400    
+_________________________________________________________________
+batch_normalization_55 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+activation_15 (Activation)   (1, 7500, 256)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              2313      
+=================================================================
+Total params: 7,622,153.0
+Trainable params: 7,618,569.0
+Non-trainable params: 3,584.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 131s - loss: 0.9916 - acc: 0.1020 - val_loss: 0.2650 - val_acc: 0.6707
+Test accuracy: 0.670666694641
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_41 (LSTM)               (1, 7500, 512)            1054720   
+_________________________________________________________________
+batch_normalization_56 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+lstm_42 (LSTM)               (1, 7500, 1024)           6295552   
+_________________________________________________________________
+batch_normalization_57 (Batc (1, 7500, 1024)           4096      
+_________________________________________________________________
+dense_16 (Dense)             (1, 7500, 256)            262400    
+_________________________________________________________________
+batch_normalization_58 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+activation_16 (Activation)   (1, 7500, 256)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              2313      
+=================================================================
+Total params: 7,622,153.0
+Trainable params: 7,618,569.0
+Non-trainable params: 3,584.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 134s - loss: 0.6966 - acc: 0.1340 - val_loss: 0.3095 - val_acc: 0.0660
+Test accuracy: 0.0659999996424
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_43 (LSTM)               (1, 7500, 512)            1054720   
+_________________________________________________________________
+batch_normalization_59 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+lstm_44 (LSTM)               (1, 7500, 1024)           6295552   
+_________________________________________________________________
+batch_normalization_60 (Batc (1, 7500, 1024)           4096      
+_________________________________________________________________
+dense_17 (Dense)             (1, 7500, 256)            262400    
+_________________________________________________________________
+batch_normalization_61 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+activation_17 (Activation)   (1, 7500, 256)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              2313      
+=================================================================
+Total params: 7,622,153.0
+Trainable params: 7,618,569.0
+Non-trainable params: 3,584.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 130s - loss: 0.8278 - acc: 0.0997 - val_loss: 0.3703 - val_acc: 0.0392
+Test accuracy: 0.0392000004649
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_45 (LSTM)               (1, 7500, 512)            1054720   
+_________________________________________________________________
+batch_normalization_62 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+lstm_46 (LSTM)               (1, 7500, 1024)           6295552   
+_________________________________________________________________
+batch_normalization_63 (Batc (1, 7500, 1024)           4096      
+_________________________________________________________________
+dense_18 (Dense)             (1, 7500, 126)            129150    
+_________________________________________________________________
+batch_normalization_64 (Batc (1, 7500, 126)            504       
+_________________________________________________________________
+activation_18 (Activation)   (1, 7500, 126)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              1143      
+=================================================================
+Total params: 7,487,213.0
+Trainable params: 7,483,889.0
+Non-trainable params: 3,324.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 133s - loss: 0.8295 - acc: 0.0784 - val_loss: 0.3683 - val_acc: 0.2228
+Test accuracy: 0.222800001502
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_47 (LSTM)               (1, 7500, 512)            1054720   
+_________________________________________________________________
+batch_normalization_65 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+lstm_48 (LSTM)               (1, 7500, 1024)           6295552   
+_________________________________________________________________
+batch_normalization_66 (Batc (1, 7500, 1024)           4096      
+_________________________________________________________________
+dense_19 (Dense)             (1, 7500, 256)            262400    
+_________________________________________________________________
+batch_normalization_67 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+activation_19 (Activation)   (1, 7500, 256)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              2313      
+=================================================================
+Total params: 7,622,153.0
+Trainable params: 7,618,569.0
+Non-trainable params: 3,584.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 132s - loss: 0.7675 - acc: 0.1417 - val_loss: 0.9239 - val_acc: 0.0456
+Test accuracy: 0.0456000007689
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_49 (LSTM)               (1, 7500, 1024)           4206592   
+_________________________________________________________________
+batch_normalization_68 (Batc (1, 7500, 1024)           4096      
+_________________________________________________________________
+lstm_50 (LSTM)               (1, 7500, 126)            580104    
+_________________________________________________________________
+batch_normalization_69 (Batc (1, 7500, 126)            504       
+_________________________________________________________________
+dense_20 (Dense)             (1, 7500, 126)            16002     
+_________________________________________________________________
+batch_normalization_70 (Batc (1, 7500, 126)            504       
+_________________________________________________________________
+activation_20 (Activation)   (1, 7500, 126)            0         
+_________________________________________________________________
+dense_21 (Dense)             (1, 7500, 126)            16002     
+_________________________________________________________________
+batch_normalization_71 (Batc (1, 7500, 126)            504       
+_________________________________________________________________
+activation_21 (Activation)   (1, 7500, 126)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              1143      
+=================================================================
+Total params: 4,825,451.0
+Trainable params: 4,822,647.0
+Non-trainable params: 2,804.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 122s - loss: 0.9125 - acc: 0.1831 - val_loss: 0.1711 - val_acc: 0.0516
+Test accuracy: 0.0516000017524
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_51 (LSTM)               (1, 7500, 512)            1054720   
+_________________________________________________________________
+batch_normalization_72 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+lstm_52 (LSTM)               (1, 7500, 1024)           6295552   
+_________________________________________________________________
+batch_normalization_73 (Batc (1, 7500, 1024)           4096      
+_________________________________________________________________
+dense_22 (Dense)             (1, 7500, 256)            262400    
+_________________________________________________________________
+batch_normalization_74 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+activation_22 (Activation)   (1, 7500, 256)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              2313      
+=================================================================
+Total params: 7,622,153.0
+Trainable params: 7,618,569.0
+Non-trainable params: 3,584.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 138s - loss: 1.0429 - acc: 0.3276 - val_loss: 0.5992 - val_acc: 0.0405
+Test accuracy: 0.0405333340168
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_53 (LSTM)               (1, 7500, 512)            1054720   
+_________________________________________________________________
+batch_normalization_75 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              4617      
+=================================================================
+Total params: 1,061,385.0
+Trainable params: 1,060,361
+Non-trainable params: 1,024.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 40s - loss: 1.1801 - acc: 0.2056 - val_loss: 0.7261 - val_acc: 0.0220
+Test accuracy: 0.0219999998808
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_54 (LSTM)               (1, 7500, 512)            1054720   
+_________________________________________________________________
+batch_normalization_76 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+lstm_55 (LSTM)               (1, 7500, 1024)           6295552   
+_________________________________________________________________
+batch_normalization_77 (Batc (1, 7500, 1024)           4096      
+_________________________________________________________________
+dense_23 (Dense)             (1, 7500, 256)            262400    
+_________________________________________________________________
+batch_normalization_78 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+activation_23 (Activation)   (1, 7500, 256)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              2313      
+=================================================================
+Total params: 7,622,153.0
+Trainable params: 7,618,569.0
+Non-trainable params: 3,584.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 188s - loss: 0.8514 - acc: 0.1225 - val_loss: 0.1389 - val_acc: 0.6084
+Test accuracy: 0.608399987221
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_56 (LSTM)               (1, 7500, 256)            265216    
+_________________________________________________________________
+batch_normalization_79 (Batc (1, 7500, 256)            1024      
+_________________________________________________________________
+lstm_57 (LSTM)               (1, 7500, 1024)           5246976   
+_________________________________________________________________
+batch_normalization_80 (Batc (1, 7500, 1024)           4096      
+_________________________________________________________________
+dense_24 (Dense)             (1, 7500, 512)            524800    
+_________________________________________________________________
+batch_normalization_81 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+activation_24 (Activation)   (1, 7500, 512)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              4617      
+=================================================================
+Total params: 6,048,777.0
+Trainable params: 6,045,193.0
+Non-trainable params: 3,584.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 168s - loss: 0.7373 - acc: 0.0475 - val_loss: 0.3567 - val_acc: 0.0216
+Test accuracy: 0.0216000005603
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_58 (LSTM)               (1, 7500, 126)            65016     
+_________________________________________________________________
+batch_normalization_82 (Batc (1, 7500, 126)            504       
+_________________________________________________________________
+lstm_59 (LSTM)               (1, 7500, 126)            127512    
+_________________________________________________________________
+batch_normalization_83 (Batc (1, 7500, 126)            504       
+_________________________________________________________________
+dense_25 (Dense)             (1, 7500, 126)            16002     
+_________________________________________________________________
+batch_normalization_84 (Batc (1, 7500, 126)            504       
+_________________________________________________________________
+activation_25 (Activation)   (1, 7500, 126)            0         
+_________________________________________________________________
+dense_26 (Dense)             (1, 7500, 126)            16002     
+_________________________________________________________________
+batch_normalization_85 (Batc (1, 7500, 126)            504       
+_________________________________________________________________
+activation_26 (Activation)   (1, 7500, 126)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              1143      
+=================================================================
+Total params: 227,691.0
+Trainable params: 226,683.0
+Non-trainable params: 1,008.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 53s - loss: 1.5470 - acc: 0.0468 - val_loss: 0.1306 - val_acc: 0.0420
+Test accuracy: 0.0419999994338
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_60 (LSTM)               (1, 7500, 512)            1054720   
+_________________________________________________________________
+batch_normalization_86 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+lstm_61 (LSTM)               (1, 7500, 1024)           6295552   
+_________________________________________________________________
+batch_normalization_87 (Batc (1, 7500, 1024)           4096      
+_________________________________________________________________
+dense_27 (Dense)             (1, 7500, 512)            524800    
+_________________________________________________________________
+batch_normalization_88 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+activation_27 (Activation)   (1, 7500, 512)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              4617      
+=================================================================
+Total params: 7,887,881.0
+Trainable params: 7,883,785.0
+Non-trainable params: 4,096.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 148s - loss: 1.0570 - acc: 0.0225 - val_loss: 0.5954 - val_acc: 0.0317
+Test accuracy: 0.0317333340645
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_62 (LSTM)               (1, 7500, 1024)           4206592   
+_________________________________________________________________
+batch_normalization_89 (Batc (1, 7500, 1024)           4096      
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              9225      
+=================================================================
+Total params: 4,219,913.0
+Trainable params: 4,217,865
+Non-trainable params: 2,048.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 119s - loss: 1.5649 - acc: 0.1183 - val_loss: 0.4552 - val_acc: 0.1487
+Test accuracy: 0.148666664958
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_63 (LSTM)               (1, 7500, 512)            1054720   
+_________________________________________________________________
+batch_normalization_90 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+lstm_64 (LSTM)               (1, 7500, 126)            322056    
+_________________________________________________________________
+batch_normalization_91 (Batc (1, 7500, 126)            504       
+_________________________________________________________________
+dense_28 (Dense)             (1, 7500, 512)            65024     
+_________________________________________________________________
+batch_normalization_92 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+activation_28 (Activation)   (1, 7500, 512)            0         
+_________________________________________________________________
+dense_29 (Dense)             (1, 7500, 126)            64638     
+_________________________________________________________________
+batch_normalization_93 (Batc (1, 7500, 126)            504       
+_________________________________________________________________
+activation_29 (Activation)   (1, 7500, 126)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              1143      
+=================================================================
+Total params: 1,512,685.0
+Trainable params: 1,510,133.0
+Non-trainable params: 2,552.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 84s - loss: 0.9860 - acc: 0.1043 - val_loss: 0.7748 - val_acc: 0.0361
+Test accuracy: 0.0361333340406
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_65 (LSTM)               (1, 7500, 512)            1054720   
+_________________________________________________________________
+batch_normalization_94 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+lstm_66 (LSTM)               (1, 7500, 126)            322056    
+_________________________________________________________________
+batch_normalization_95 (Batc (1, 7500, 126)            504       
+_________________________________________________________________
+dense_30 (Dense)             (1, 7500, 1024)           130048    
+_________________________________________________________________
+batch_normalization_96 (Batc (1, 7500, 1024)           4096      
+_________________________________________________________________
+activation_30 (Activation)   (1, 7500, 1024)           0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              9225      
+=================================================================
+Total params: 1,522,697.0
+Trainable params: 1,519,373.0
+Non-trainable params: 3,324.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 74s - loss: 0.9096 - acc: 0.1021 - val_loss: 0.1321 - val_acc: 0.0817
+Test accuracy: 0.0817333310843
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_67 (LSTM)               (1, 7500, 126)            65016     
+_________________________________________________________________
+batch_normalization_97 (Batc (1, 7500, 126)            504       
+_________________________________________________________________
+lstm_68 (LSTM)               (1, 7500, 64)             48896     
+_________________________________________________________________
+batch_normalization_98 (Batc (1, 7500, 64)             256       
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              585       
+=================================================================
+Total params: 115,257.0
+Trainable params: 114,877
+Non-trainable params: 380.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 56s - loss: 2.1565 - acc: 0.0836 - val_loss: 0.1605 - val_acc: 0.3725
+Test accuracy: 0.372533321381
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_69 (LSTM)               (1, 7500, 512)            1054720   
+_________________________________________________________________
+batch_normalization_99 (Batc (1, 7500, 512)            2048      
+_________________________________________________________________
+lstm_70 (LSTM)               (1, 7500, 1024)           6295552   
+_________________________________________________________________
+batch_normalization_100 (Bat (1, 7500, 1024)           4096      
+_________________________________________________________________
+dense_31 (Dense)             (1, 7500, 256)            262400    
+_________________________________________________________________
+batch_normalization_101 (Bat (1, 7500, 256)            1024      
+_________________________________________________________________
+activation_31 (Activation)   (1, 7500, 256)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              2313      
+=================================================================
+Total params: 7,622,153.0
+Trainable params: 7,618,569.0
+Non-trainable params: 3,584.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 163s - loss: 0.8746 - acc: 0.0692 - val_loss: 0.5002 - val_acc: 0.0463
+Test accuracy: 0.0462666675448
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_71 (LSTM)               (1, 7500, 1024)           4206592   
+_________________________________________________________________
+batch_normalization_102 (Bat (1, 7500, 1024)           4096      
+_________________________________________________________________
+lstm_72 (LSTM)               (1, 7500, 1024)           8392704   
+_________________________________________________________________
+batch_normalization_103 (Bat (1, 7500, 1024)           4096      
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              9225      
+=================================================================
+Total params: 12,616,713.0
+Trainable params: 12,612,617
+Non-trainable params: 4,096.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 283s - loss: 2.2024 - acc: 0.0731 - val_loss: 0.1913 - val_acc: 0.0229
+Test accuracy: 0.0229333341122
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lstm_73 (LSTM)               (1, 7500, 126)            65016     
+_________________________________________________________________
+batch_normalization_104 (Bat (1, 7500, 126)            504       
+_________________________________________________________________
+lstm_74 (LSTM)               (1, 7500, 1024)           4714496   
+_________________________________________________________________
+batch_normalization_105 (Bat (1, 7500, 1024)           4096      
+_________________________________________________________________
+dense_32 (Dense)             (1, 7500, 126)            129150    
+_________________________________________________________________
+batch_normalization_106 (Bat (1, 7500, 126)            504       
+_________________________________________________________________
+activation_32 (Activation)   (1, 7500, 126)            0         
+_________________________________________________________________
+dense_33 (Dense)             (1, 7500, 256)            32512     
+_________________________________________________________________
+batch_normalization_107 (Bat (1, 7500, 256)            1024      
+_________________________________________________________________
+activation_33 (Activation)   (1, 7500, 256)            0         
+_________________________________________________________________
+dense_output (Dense)         (1, 7500, 9)              2313      
+=================================================================
+Total params: 4,949,615.0
+Trainable params: 4,946,551.0
+Non-trainable params: 3,064.0
+_________________________________________________________________
+Train on 1 samples, validate on 1 samples
+Epoch 1/1
+1/1 [==============================] - 177s - loss: 1.7530 - acc: 0.2067 - val_loss: 0.1303 - val_acc: 0.1425
+Test accuracy: 0.142533332109
+Evalutation of best performing model:
+1/1 [==============================] - 20sUsing TensorFlow backend.
+
+[0.72401082515716553, 0.6714666485786438]
+Best performing model chosen hyper-parameters:
+{'Activation': 2, 'Activation_1': 2, 'Activation_2': 0, 'Dense': 2, 'Dense_1': 2, 'Dense_2': 0, 'LSTM': 3, 'LSTM_1': 0, 'LSTM_2': 4, 'LSTM_3': 1, 'conditional': 2, 'dropout': 0.24262496679483414, 'dropout_1': 0.24083776969398046, 'dropout_2': 0.4440995372232807, 'dropout_3': 0.19378913952416787, 'dropout_4': 0.18058579914657197, 'dropout_5': 0.1820122957634046, 'dropout_6': 0.11399536937803484, 'dropout_7': 0.13709791545993666}
