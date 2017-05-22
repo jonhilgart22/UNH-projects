@@ -70,12 +70,10 @@ class ESP_revenue_predictions(object):
         return fx_mweekly
 
     @staticmethod
-    def letters_of_credit_weekly_rev(mean =5.8881385690963244,
-        shape= 0.13389992319334332,scale_l=  -663.98000000000013,
-         scale_a= 0.35989374191434359):
-        """ This gives a predicted weekly GP from and Exponential Weibull distribution.
+    def letters_of_credit_weekly_rev(one = -663.9800000000298, two = 869.07882491183921):
+        """ This gives a predicted weekly GP from and Exponential  distribution.
         The default parameters here are from 2016"""
-        loc_mweekly = stats.exponweib.rvs(mean,shape,scale_l,scale_a)/4
+        loc_mweekly = stats.expon.rvs(one,two)/4
         return loc_mweekly
 
     @staticmethod
