@@ -8,7 +8,6 @@ Project Organization
 ------------
 
     ├── LICENSE
-    ├── Makefile           <- Makefile with commands like `make data` or `make train`
     ├── README.md          <- The top-level README for developers using this project.
     ├── data               <- Not available on GitHub. Can access here http://www.nyc.gov/html/tlc/html/about/trip_record_data.shtml
     │  
