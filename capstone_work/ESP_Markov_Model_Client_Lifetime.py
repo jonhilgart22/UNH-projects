@@ -499,9 +499,7 @@ def ESP_Markov_Model_Joint_Prob(esp_money_market_jointprob_probabilities,week_n_
         # the order of the factor model is a0_b0, a0_b1, ,a1_b0, a1_b1
         #http://conference.scipy.org/proceedings/scipy2015/pdfs/ankur_ankan.pdf
 
-    # print(prob_checking,'checking', prob_cmma,'cmma', prob_mmb,'mmb', prob_cm,'cm', prob_fx,'fx', prob_loc,'loc',
-    #       prob_es,'es')
-    #return prob_checking, prob_cmma, prob_mmb, prob_cm, prob_fx, prob_loc, prob_es, prob_checking_original
+
     return prob_checking[0], prob_cmma[0], prob_mmb[0], prob_cm[0], prob_fx[0], prob_loc[0], prob_es[0]
 
     end_time = time.time()
@@ -514,6 +512,7 @@ def ESP_Markov_Model_Joint_Prob(esp_money_market_jointprob_probabilities,week_n_
 
 if __name__ == '__main__':
     week_n = 1
+    # can test our different starting evidence at different week numbers
     checking_prob, cmma_prob, mmb_prob, cm_prob, fx_prob ,loc_prob, es_prob = \
     ESP_Markov_Model_Joint_Prob(ESP_Joint_Product_Probabilities,single=True,
                                 week_n_one_time=week_n,
