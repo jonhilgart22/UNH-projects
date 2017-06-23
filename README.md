@@ -1,5 +1,5 @@
 # glavanize-projects
-Here you will find various projects during my Master's in Data Science program.
+Here you will find various projects I completed during my Master's in Data Science program.
 
 Index
 
