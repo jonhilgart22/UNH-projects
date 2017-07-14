@@ -1,5 +1,5 @@
 # glavanize-projects
-Here you will find various projects during my Master's in Data Science program.
+Here you will find various projects I completed during my Master's in Data Science program.
 
 Index
 
@@ -25,4 +25,4 @@ Index
 **Semester Four**
 
 - 7) *Deep Learning*: contains an analysis of using reinforcement learning to maximize a daily taxicab driver's revenue in NYC. (Deep Q-Learning, Actor-Critic, Keras, Tensorflow, GPUs)
-- 8) *Capstone*: contains a lifetime value analysis using Markov Random Fields and a discrete event simulation framework (Probabilisitc Graphical Models, Markov Random Fields, Lifetime Value analysis, Simulation).<a href="https://docs.google.com/document/d/1PA-Z_HjjJqIGBlQ26dMYruw4NfN-uFgtTD1LGV2BSTM/edit?usp=sharing"> Check out my final paper ! </a>
+- 8) *Capstone*: contains a lifetime value analysis using Markov Random Fields and a discrete event simulation framework (Probabilisitc Graphical Models, Markov Random Fields, Lifetime Value analysis, Discrete Event Simulation).<a href="https://docs.google.com/document/d/1PA-Z_HjjJqIGBlQ26dMYruw4NfN-uFgtTD1LGV2BSTM/edit?usp=sharing"> Check out my final paper ! </a>
