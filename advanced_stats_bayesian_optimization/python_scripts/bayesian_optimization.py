@@ -19,8 +19,10 @@ import itertools
 __author__ = 'Jonathan Hilgart'
 
 
-def BayesianOptimizationImplementation(object):
-    """A class to perform Bayesian Optimization on a 1D or 2D domain.
+class IBO(object):
+    """
+    IBO: Intelligent Bayesian OPtimization
+    A class to perform Bayesian Optimization on a 1D or 2D domain.
     Can either have an objective function to maximize or a true function
     to maximize"""
 
@@ -35,11 +37,10 @@ def BayesianOptimizationImplementation(object):
             self.kernel = self.__matern_kernel__
 
     def fit(self, train_points_x, train_points_y,
-            test_domain, train_y_func,
-            samples, test_points_y = None,
+            test_domain, train_y_func, y_func_type = 'real',
+            samples = 10 , test_points_x = None, test_points_y = None,
             covariance_noise = 5e-5, n_posteriors = 30,
-            model = GradientBoostingRegressor,
-            y_func_type ='objective',
+            model_obj = GradientBoostingRegressor,
             verbose = True):
         """Define the parameters for the GP.
         PARAMS:
@@ -61,27 +62,31 @@ def BayesianOptimizationImplementation(object):
         train_y_func - This can either be an objective function or a true function
         """
 
-        self.test_domain = test_domain
+        try:
+            type(train_points_x).__module__ == np.__name__
+            type(train_points_y).__module__ == np.__name__
+        except Exception as e:
+            print(e)
+            return ' You need to input numpy types'
         # Store the training points
         self.train_points_x = train_points_x
         self.train_points_y = train_points_y
         self.test_domain = test_domain
-        # Only if using an objective function, from the 'test' split
-        self.test_points_x = test_x_points
-        self.test_points_y = test_points_y
+
+
         # Y func can either be an objective function, or the true underlying func.
         if y_func_type == 'real':
             self.train_y_func = train_y_func
         elif y_func_type == 'objective':
             if model == None:
                 return ' you need to pass in a model (GradientBoostingRegressor)'
-            self.train_y_func = self.hyperparam_choice_function()
 
-        # define the covariance matrices
-        self.covariance_train_train = self.kernel(train_points_x,
-                                train_points_x, train=True)
-        self.covariance_test_train  = self.kernel(test_domain, train_points_x)
-        self.covariance_test_test  = self.kernel(test_domain, test_domain)
+            # Only if using an objective function, from the 'test' split
+            self.test_points_x = test_points_x
+            self.test_points_y = test_points_y
+            self.train_y_func = self.hyperparam_choice_function(model = model_obj)
+
+
 
         # store the testing parameters
         self.covariance_noise = covariance_noise
@@ -102,7 +107,7 @@ def BayesianOptimizationImplementation(object):
 
 
     def predict(self):
-        """Return the sampled points (x +y), as well as the best_x and best_y"""
+        """returns x_sampled_points, y_sampled_points, best_x, best_y"""
 
         x_sampled_points, y_sampled_points, sampled_var, \
             best_x, best_y, improvements, domain, mus = next(self.bo_gen)
@@ -139,8 +144,14 @@ def BayesianOptimizationImplementation(object):
         Covariance diagonal noise is used to help enforce positive definite matrices
 
         """
-        y_var = 10
 
+        # Update the covaraince matrices
+        self.covariance_train_train = self.kernel(self.train_points_x,
+                                self.train_points_x, train=True)
+        self.covariance_test_train  = self.kernel(self.test_domain,
+                                                  self.train_points_x)
+        self.covariance_test_test  = self.kernel(self.test_domain,
+                                                 self.test_domain)
 
 
         # Use cholskey decomposition to increase speed for calculating mean
@@ -189,16 +200,13 @@ def BayesianOptimizationImplementation(object):
 
             N-Posteriors / N-Priors tells the number of functions to samples from the dsitribution"""
 
-            # Draw samples from the posterior at our test points.
-            covariance_test_test  = kernel(test_x,test_x)
-
-            self.covariance_test_test
 
             try: # try inside sample from posterior function
                 L = np.linalg.cholesky(self.covariance_test_test +
                     self.covariance_noise * np.eye(
                         len(self.test_domain))- np.dot(Lk.T, Lk))
             except Exception as e:
+                print(e)
                 # Find the neareset Positive Definite Matrix
                 near_decompose = self.nearestPD(self.covariance_test_test +
                     self.covariance_noise * np.eye(
@@ -212,7 +220,7 @@ def BayesianOptimizationImplementation(object):
             # Sample X sets of standard normals for our test points,
             # multiply them by the square root of the covariance matrix
             f_prior_uninformed = np.dot(L_test_test,
-                    np.random.normal(size=(len(self.test_domain, n_priors))))
+                    np.random.normal(size=(len(self.test_domain), n_priors)))
             # For the posterior, the columns are the vector for that function
             return (f_prior_uninformed, f_post)
 
@@ -226,7 +234,7 @@ def BayesianOptimizationImplementation(object):
             return mus.ravel(), s2.ravel()
 
 
-    def __sample_from_function__(verbose=True):
+    def __sample_from_function__(self, verbose=True):
         """Sample N times from the unknown function and for each time find the
         point that will have the highest expected improvement (find the maxima of the function).
         Verbose signifies if the function should print out the points where it is sampling
@@ -242,16 +250,17 @@ def BayesianOptimizationImplementation(object):
         Note - the y-function can EITHER by the actual y-function (for evaluation
         purposes, or an objective function
         (i.e. - RMSE))"""
-        y_var=10
+
 
         # for plotting the points sampled
         x_sampled_points = []
         y_sampled_points = []
-        sampled_variance = []
+        best_x = None
+        best_y = None
 
 
         # STARTING POINTS
-        if train_x.shape[1]>1: # Two dimensional
+        if self.train_points_x.shape[1]>1: # Two dimensional
             # Random starting point
             try: # see if the format is a np.array
                 start_point = np.array([self.test_domain
@@ -261,32 +270,40 @@ def BayesianOptimizationImplementation(object):
                                         [np.random.choice(len(self.test_domain ))]])
             #start at random point in the domain
             best_x = start_point
+
             try: # in case we are passing the actual function here
                 best_y = self.train_y_func(start_point[0][0] , start_point[0][1])
+                start_y = best_y
             except: # we are passing the objective function (min RMSE)
                 best_y = self.train_y_func(start_point[0][0],
-                dimensions = 'two',hyperparameter_value_two = start_point[0][1])
+                dimensions = 'two', hyperparameter_value_two = start_point[0][1])
+                start_y = best_y
             # for plotting the points sampled
 
 
         else: # One dimensional case
-            start_point = np.random.choice(self.test_domain)
+            try: # see if it is a list
+                start_point = np.random.choice(self.test_domain)
+            except:
+                start_point = np.random.choice(list(self.test_domain.ravel()))
             # start at random point in the domain
             best_x = start_point
             best_y = self.train_y_func(start_point)
             # initial best y value based on start point
             start_y = self.train_y_func(start_point)
 
+        x_sampled_points.append(start_point)
+        y_sampled_points.append(start_y)
 
         for i in range(self.samples):
             if i == 0:
-                if train_x.shape[1]==1: ## one dimensional case
+                if self.train_points_x .shape[1]==1: ## one dimensional case
                     testing_domain = np.array([self.test_domain]).reshape(-1,1)
                 else:
                     testing_domain = self.test_domain
 
                 # find the next x-point to sample
-                mus, vars_,_,post = self.__test_gaussian_process__(
+                mus, vars_, prior, post = self.__test_gaussian_process__(
                     return_sample = True)
 
 
@@ -297,9 +314,10 @@ def BayesianOptimizationImplementation(object):
                     mus_post, sigmas_post ,best_y)
 
                 max_improv_x_idx = np.argmax(list_of_expected_improvements)
+                #print(max_improv_x_idx,'max_improv_x_idx')
                 max_improv_x = testing_domain[max_improv_x_idx]
 
-                if train_x.shape[1]==1:
+                if self.train_points_x.shape[1]==1:
                     max_improv_y = self.train_y_func(max_improv_x)
                 else: # Two D
                     try: # see if we are passing in the actual function
@@ -307,7 +325,7 @@ def BayesianOptimizationImplementation(object):
                             max_improv_x[0], max_improv_x[1])
                     except: # we are passing the objective function in
                         max_improv_y = self.train_y_func(
-                            max_improv_x[0],dimensions = 'two',
+                            max_improv_x[0], dimensions = 'two',
                             hyperparameter_value_two = max_improv_x[1])
 
                 if max_improv_y > best_y: ## use to find out where to search next
@@ -319,32 +337,38 @@ def BayesianOptimizationImplementation(object):
                 if verbose:
                     print(f"Bayesian Optimization just sampled point = {best_x}")
                     print(f"Best x (Bayesian Optimization) = {best_x},\
-                          Best y = {best_y}")
-                    sampled_variance.append(sigmas_post[max_improv_x_idx])
+                         Best y = {best_y}")
 
                     # append the point to sample
+                    #print(x_sampled_points,'x sampeld points first before')
+
                     x_sampled_points.append(max_improv_x)
+                    #print(x_sampled_points,'x sampeld points first before')
                     y_sampled_points.append(max_improv_y)
 
-
+                    #print(len(self.train_points_x),'len train points x before')
                     # append our new the newly sampled point to the training data
-                    self.train_points_x = np.vstack((self.train_points_x, max_improv_x))
-                    self.train_points_y = np.vstack((self.train_points_y, max_improv_y))
+                    self.train_points_x = np.vstack((self.train_points_x,
+                                                     max_improv_x))
+                    #print(len(self.train_points_x),'len train points x after')
+                    #print(self.train_points_x,'train points x after')
+                    self.train_points_y = np.vstack((self.train_points_y,
+                                                     max_improv_y))
+                    #print(self.train_points_y ,'self.train_points_y ')
 
                     yield x_sampled_points, y_sampled_points, vars_, best_x, best_y, \
                         list_of_expected_improvements, testing_domain, mus
 
                 else:
 
-                    sampled_variance.append(sigmas_post[max_improv_x_idx])
 
                     # append the point to sample
                     x_sampled_points.append(max_improv_x)
                     y_sampled_points.append(max_improv_y)
 
                     # append our new the newly sampled point to the training data
-                    train_x = np.vstack((train_x, max_improv_x))
-                    train_y_numbers = np.vstack((train_y_numbers, max_improv_y))
+                    self.train_points_x = np.vstack((self.train_points_x, max_improv_x))
+                    self.train_points_y = np.vstack((self.train_points_y, max_improv_y))
 
                     yield x_sampled_points, y_sampled_points, vars_, best_x, best_y, \
                         list_of_expected_improvements, testing_domain, mus
@@ -352,25 +376,32 @@ def BayesianOptimizationImplementation(object):
 
             else:
                 # reformat testing domain to include more possible points
-                if train_x.shape[1]==1:
-                    testing_domain = np.array([testing_domain]).reshape(-1,1)
-                else:
-                    testing_domain = self.test_domain
 
-                    mus, vars_,_,post = self.__test_gaussian_process__(
+                if self.train_points_x.shape[1]==1:
+                    testing_domain = np.array([testing_domain]).reshape(-1,1)
+                # else:
+                #     testing_domain = self.test_domain
+
+                mus, vars_, prior, post = self.__test_gaussian_process__(
                         return_sample = True)
 
                 sigmas_post = np.var(post,axis=1)
                 mus_post = np.mean(post,axis=1)
+                #print(sigmas_post , 'sigmas_post ')
 
                 # get the expected values from the posterior distribution
                 list_of_expected_improvements = self.expected_improvement(
                     mus_post, sigmas_post ,best_y)
+                #print(max(mus_post), min(mus_post),'max min mus')
 
                 max_improv_x_idx = np.argmax(list_of_expected_improvements)
                 max_improv_x = testing_domain[max_improv_x_idx]
+                #print(testing_domain, ' testing domain')
+                #print(max_improv_x, 'max_improv_x')
+                #rint(list_of_expected_improvements ,'list_of_expected_improvements ')
 
-                if train_x.shape[1]==1:
+                if self.train_points_x .shape[1]==1:
+                    #print('ONE DIMENSIONAL')
                     max_improv_y = self.train_y_func(max_improv_x)
                 else: # Two D
                     try: # see if we are passing in the actual function
@@ -378,43 +409,45 @@ def BayesianOptimizationImplementation(object):
                             max_improv_x[0], max_improv_x[1])
                     except: # we are passing the objective function in
                         max_improv_y = self.train_y_func(
-                            max_improv_x[0],dimensions = 'two',
+                            max_improv_x[0], dimensions = 'two',
                             hyperparameter_value_two = max_improv_x[1])
 
                 if max_improv_y > best_y: ## use to find out where to search next
                     best_y = max_improv_y
                     best_x = max_improv_x
-                else:
-                    best_x = start_point
+
 
                 if verbose:
                     print(f"Bayesian Optimization just sampled point = {max_improv_x}")
                     print(f"Best x (Bayesian Optimization) = {best_x}, Best y = {best_y}")
-                    sampled_variance.append(sigmas_post[max_improv_x_idx])
-
+                    #print(x_sampled_points,'x sampled before')
+                    #print('HEREHEHRHERERH EHRER HERE')
                     # append the point to sample
                     x_sampled_points.append(max_improv_x)
+                    #print(x_sampled_points, 'x sampled after')
                     y_sampled_points.append(max_improv_y)
 
 
                     # append our new the newly sampled point to the training data
                     self.train_points_x = np.vstack((self.train_points_x, max_improv_x))
+                    #print(self.train_points_x,'train points x after')
                     self.train_points_y = np.vstack((self.train_points_y, max_improv_y))
+                    #print(self.train_points_y ,'self.train_points_y  after')
 
                     yield x_sampled_points, y_sampled_points, vars_, best_x, best_y, \
                         list_of_expected_improvements, testing_domain, mus
 
                 else:
 
-                    sampled_variance.append(sigmas_post[max_improv_x_idx])
+                    #sampled_variance.append(sigmas_post[max_improv_x_idx])
 
                     # append the point to sample
                     x_sampled_points.append(max_improv_x)
                     y_sampled_points.append(max_improv_y)
 
                     # append our new the newly sampled point to the training data
-                    train_x = np.vstack((train_x, max_improv_x))
-                    train_y_numbers = np.vstack((train_y_numbers, max_improv_y))
+                    self.train_points_x = np.vstack((self.train_points_x, max_improv_x))
+                    self.train_points_y = np.vstack((self.train_points_y, max_improv_y))
 
                     yield x_sampled_points, y_sampled_points, vars_, best_x, best_y, \
                         list_of_expected_improvements, testing_domain, mus
@@ -467,7 +500,8 @@ def BayesianOptimizationImplementation(object):
             return np.linalg.norm(actual - predicted)/np.sqrt(len(actual))
 
     def expected_improvement(self, mean_x, sigma_squarred_x,
-                             y_val_for_best_hyperparameters, normal_dist=None, point_est = False):
+                             y_val_for_best_hyperparameters, normal_dist=None,
+                              point_est = False):
         """Finds the expected improvement of a point give the current best point.
         If point_est = False, then computes the expected value on a vector
         from the posterior distribution.
@@ -496,8 +530,8 @@ def BayesianOptimizationImplementation(object):
                                          / np.std(sigma_squarred_x)),np.sqrt(sigma_squarred_x) ):
 
                         list_of_improvements.append(((m-y_val_for_best_hyperparameters)*\
-                                                     norm(m,s).cdf(z)\
-                                                     +s * norm(m,s).pdf(z)))
+                                                     norm().cdf(z)\
+                                                     +s * norm().pdf(z)))
                         m_s.append(m)
 
                     return list_of_improvements
@@ -520,6 +554,15 @@ def BayesianOptimizationImplementation(object):
         [2] N.J. Higham, "Computing a nearest symmetric positive semidefinite
         matrix" (1988): https://doi.org/10.1016/0024-3795(88)90223-6
         """
+        def isPD(B):
+            """Returns true when input is positive-definite, via Cholesky"""
+            try:
+                _ = la.cholesky(B)
+                return True
+            except la.LinAlgError:
+                return False
+
+
 
         B = (A + A.T) / 2
         _, s, V = la.svd(B)
@@ -530,7 +573,7 @@ def BayesianOptimizationImplementation(object):
 
         A3 = (A2 + A2.T) / 2
 
-        if self.isPD(A3):
+        if isPD(A3):
             return A3
 
         spacing = np.spacing(la.norm(A))
@@ -552,16 +595,10 @@ def BayesianOptimizationImplementation(object):
 
         return A3
 
-        def isPD(B):
-            """Returns true when input is positive-definite, via Cholesky"""
-            try:
-                _ = la.cholesky(B)
-                return True
-            except la.LinAlgError:
-                return False
 
 
-    def __squarred_kernel__(self, a, b, param=2.0, train=False, train_noise = 5e-3, vertical_scale=50):
+    def __squarred_kernel__(self, a, b, param=2.0, train=False,
+                            train_noise = 5e-3, vertical_scale=50):
         """Calculated the squarred exponential kernel.
         Adds a noise term for the covariance of the training data
         Adjusting the param changes the difference where points will have a positive covariance
@@ -598,6 +635,9 @@ def BayesianOptimizationImplementation(object):
                 return max(np.var(a),np.var(b)) * np.exp(-matrix_norm)
         elif C_smoothness == 3/2:
             if train == True:
-                return max(np.var(a),np.var(b))* (1 +np.sqrt(3)*matrix_norm)*np.exp(-np.sqrt(3)*matrix_norm) + np.eye(len(matrix_norm))*train_noise
+                return max(np.var(a),np.var(b))* (1
+                    + np.sqrt(3)*matrix_norm)*np.exp(-np.sqrt(3)*matrix_norm) \
+                    + np.eye(len(matrix_norm))*train_noise
             else:
-                return max(np.var(a),np.var(b))* (1 +np.sqrt(3)*matrix_norm)*np.exp(-np.sqrt(3)*matrix_norm)
+                return max(np.var(a),np.var(b))* (1 +np.sqrt(3) *
+                                matrix_norm) * np.exp(-np.sqrt(3)*matrix_norm)
