@@ -5,7 +5,7 @@ what bayesian optimization is.
 - Then, within the notebooks folder you can view
 **Gaussian_Process_Hyperparameter_Selection_1D_2D** which compares this implementation to
 Grid Search and Random Grid Search over one and two dimensions.
-- Next, the notebook
+- Next, within the notebook folder the notebook
 **Compare_IBO_to_Implementation** shows how my implementation performs compared to
 the Bayesian_Optimization package
 -Finally under python_scripts, you can view the *Intelligent Bayesian Optimization* class which contains a .fit(), .predict(), and .maximize() methods.
