@@ -24,7 +24,7 @@ the Bayesian_Optimization package
 - Comparison between my implementation, random grid search, and grid search over a true one-dimensional function. 
 
 #### 2) Two dimensional objective function
-![Alt text](images/1grad_boost_alcohol.png?raw=true)
+![Alt text](images/grad_boost_alcohol.png?raw=true)
 
 ##### Results of optimization over two-dimensional objective function
 ![Alt text](images/2d_search_grid_rand_hyp.png?raw=true)
