@@ -12,8 +12,11 @@ the Bayesian_Optimization package
 
 <h3 style="text-align: center;" markdown="1"> Below, you can view some of the results </h3>
 
-### One dimensional function
+##### One dimensional function
 ![Alt text](images/1d_function.png?raw=true)
+
+##### Expected Improvement for one-dimensional function
+![Alt text](images/expected_improvement_1D.png?raw=true)
 
 
 ![Alt text](images/1d_search_rand_grid_ibo.png?raw=true)
