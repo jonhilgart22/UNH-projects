@@ -28,4 +28,4 @@ Index
 - 8) *Capstone*: contains a lifetime value analysis using Markov Random Fields and a discrete event simulation framework (Probabilisitc Graphical Models, Markov Random Fields, Lifetime Value analysis, Discrete Event Simulation).<a href="https://docs.google.com/document/d/1PA-Z_HjjJqIGBlQ26dMYruw4NfN-uFgtTD1LGV2BSTM/edit?usp=sharing"> Check out my final paper ! </a>
 
 **Semester Five**
-- 9) *Advanced Statistics*: shows a one-dimensional and two-dimensional implementation of Bayesian Optimization for hyperparameter selection (Acquisition Function, Objective Function, Gaussian Process)
+- 9) *Advanced Statistics*: shows a one-dimensional and two-dimensional implementation of Bayesian Optimization for hyperparameter selection. Includes a comparison to Grid Search, Random Grid Search, and the BayesianOptimization package (https://github.com/fmfn/BayesianOptimization) (Acquisition Function, Objective Function, Gaussian Process)
