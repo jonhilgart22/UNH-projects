@@ -9,7 +9,7 @@ Grid Search and Random Grid Search over one and two dimensions.
 - Next, within the notebook folder the notebook
 **Compare_IBO_to_Implementation** shows how my implementation performs compared to
 the Bayesian_Optimization package
--Finally under python_scripts, you can view the *Intelligent Bayesian Optimization* class which contains a .fit(), .predict(), and .maximize() methods.
+- Finally under python_scripts, you can view the *Intelligent Bayesian Optimization* class which contains a .fit(), .predict(), and .maximize() methods.
 
 <h3 style="text-align: center;" markdown="1"> Below, you can view some of the results </h3>
 
