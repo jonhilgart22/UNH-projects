@@ -1,3 +1,4 @@
+# **Intelligent Bayesian Optimization (IBO)**
 This is a one-dimensional using a true function, two-dimensional using a true function, and two-dimensional using an objective function implementation of bayesian optimization.
 
 - Start with the notebook **Overview_of_Intelligent_Bayesian_Optimization**, which explains
