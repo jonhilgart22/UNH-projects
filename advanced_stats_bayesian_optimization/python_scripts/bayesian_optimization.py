@@ -26,13 +26,13 @@ class IBO(object):
     Can either have an objective function to maximize or a true function
     to maximize"""
 
-    def __init__(self, kernel = 'squarred_kernel'):
+    def __init__(self, kernel = 'squared_kernel'):
         """Define the parameters for the bayesian optimization.
 
         The train points should be x,y coordinate that you already know about your
         function"""
-        if kernel == 'squarred_kernel':
-            self.kernel = self.__squarred_kernel__
+        if kernel == 'squared_kernel':
+            self.kernel = self.__squared_kernel__
         elif kernel == 'matern':
             self.kernel = self.__matern_kernel__
 
@@ -61,7 +61,7 @@ class IBO(object):
         verbose = Whether to print out the points Bayesian OPtimization is
             picking
         train_y_func - This can either be an objective function or a true function
-        kernel_params: dictionary of {'length':value} for squarredkernel
+        kernel_params: dictionary of {'length':value} for squaredkernel
         model_train_points: the training points for the objective function
         """
 
@@ -78,9 +78,9 @@ class IBO(object):
 
         # setup the kernel parameters
         if kernel_params != None:
-            self.squarred_length = kernel_params['rbf_length']
+            self.squared_length = kernel_params['rbf_length']
         else:
-            self.squarred_length = None
+            self.squared_length = None
 
 
         # Y func can either be an objective function, or the true underlying func.
@@ -465,7 +465,7 @@ class IBO(object):
                  m = model(n_estimators= hyperparameter_value)
             m.fit(train_points_x, train_points_y)
             pred = m.predict(self.test_points_x )
-            n_mse = self.mean_squarred_error(self.test_points_y , pred)
+            n_mse = self.root_mean_squared_error(self.test_points_y , pred)
             return n_mse
         elif self.dimensions =='two':
             try:
@@ -476,14 +476,14 @@ class IBO(object):
                           max_depth = hyperparameter_value_two)
             m.fit(train_points_x, train_points_y)
             pred = m.predict(self.test_points_x)
-            n_mse = self.mean_squarred_error(self.test_points_y , pred)
+            n_mse = self.root_mean_squared_error(self.test_points_y , pred)
             return n_mse
         else:
             return ' We do not support this number of dimensions yet'
 
 
 
-    def mean_squarred_error(self, actual, predicted, negative = True):
+    def root_mean_squared_error(self, actual, predicted, negative = True):
         """MSE of actual and predicted value.
         Negative turn the MSE negative to allow for
         maximization instead of minimization"""
@@ -492,7 +492,7 @@ class IBO(object):
         else:
             return np.linalg.norm(actual - predicted)/np.sqrt(len(actual))
 
-    def expected_improvement(self, mean_x, sigma_squarred_x,
+    def expected_improvement(self, mean_x, sigma_squared_x,
                              y_val_for_best_hyperparameters, normal_dist=None,
                               point_est = False):
         """Finds the expected improvement of a point give the current best point.
@@ -503,7 +503,7 @@ class IBO(object):
         with np.errstate(divide='ignore'): # in case sigma equals zero
             # Expected val for one point
             if point_est ==True:
-                sigma_x = np.sqrt(sigma_squarred_x) # get the standard deviation from the variance
+                sigma_x = np.sqrt(sigma_squared_x) # get the standard deviation from the variance
 
                 Z = (mean_x - y_val_for_best_hyperparameters) / sigma_x
 
@@ -520,7 +520,7 @@ class IBO(object):
                     list_of_improvements = []
                     m_s = []
                     for m, z, s in zip(mean_x, ((mean_x -y_val_for_best_hyperparameters)\
-                                         / np.std(sigma_squarred_x)),np.sqrt(sigma_squarred_x) ):
+                                         / np.std(sigma_squared_x)),np.sqrt(sigma_squared_x) ):
 
                         list_of_improvements.append(((m-y_val_for_best_hyperparameters)*\
                                                      norm().cdf(z)\
@@ -590,15 +590,15 @@ class IBO(object):
 
 
 
-    def __squarred_kernel__(self, a, b, param=2.0, train=False,
+    def __squared_kernel__(self, a, b, param=2.0, train=False,
                             train_noise = 5e-3, vertical_scale=1.5):
-        """Calculated the squarred exponential kernel.
+        """Calculated the squared exponential kernel.
         Adds a noise term for the covariance of the training data
         Adjusting the param changes the difference where points will have a positive covariance
         Returns a covaraince Matrix.
         Vertical scale controls the vertical scale of the function"""
-        if self.squarred_length != None:
-            vertical_scale = self.squarred_length
+        if self.squared_length != None:
+            vertical_scale = self.squared_length
 
         if train == False:
             # ensure a and b are numpy arrays
