@@ -39,7 +39,7 @@ class IBO(object):
     def fit(self, train_points_x, train_points_y,
             test_domain, train_y_func, y_func_type = 'real',
             samples = 10 , test_points_x = None, test_points_y = None,
-            covariance_noise = 5e-5, n_posteriors = 30,
+            covariance_noise = 5e-5, n_posteriors = 30, kernel_params = None,
             model_obj = GradientBoostingRegressor,
             verbose = True):
         """Define the parameters for the GP.
@@ -60,6 +60,7 @@ class IBO(object):
         verbose = Whether to print out the points Bayesian OPtimization is
             picking
         train_y_func - This can either be an objective function or a true function
+        kernel_params: dictionary of {'length':value} for squarredkernel
         """
 
         try:
@@ -72,6 +73,12 @@ class IBO(object):
         self.train_points_x = train_points_x
         self.train_points_y = train_points_y
         self.test_domain = test_domain
+
+        # setup the kernel parameters
+        if kernel_params != None:
+            self.squarred_length = kernel_params['length']
+        else:
+            self.squarred_length = None
 
 
         # Y func can either be an objective function, or the true underlying func.
@@ -87,11 +94,13 @@ class IBO(object):
             self.train_y_func = self.hyperparam_choice_function(model = model_obj)
 
 
-
         # store the testing parameters
         self.covariance_noise = covariance_noise
         self.n_posteriors = n_posteriors
         self.samples = samples
+        self.verbose = verbose
+
+
         if self.train_points_x.shape[1] ==1: # one dimension
             self.dimensions ='one'
         elif self.train_points_x.shape[1] ==2:
@@ -101,7 +110,7 @@ class IBO(object):
                   or not a numpy array.')
             print(type(self.train_points_x))
         # create the generator
-        self.bo_gen = self.__sample_from_function__(verbose=True)
+        self.bo_gen = self.__sample_from_function__(verbose=self.verbose)
 
 
 
@@ -114,15 +123,19 @@ class IBO(object):
 
         return x_sampled_points, y_sampled_points, best_x, best_y
 
-    def maximize(self, n_steps=10, verbose = True):
+    def maximize(self, n_steps=10, verbose = None):
         """For the n_steps defined, find the best x and y coordinate
         and return them.
         Verbose controls whether to print out the points being sampled"""
+        verbose_ = self.verbose
         self.samples = n_steps
-        bo_gen = self.__sample_from_function__(verbose = True)
+        bo_gen = self.__sample_from_function__(verbose = verbose_)
         for _ in range(self.samples):
             x_sampled_points, y_sampled_points, sampled_var, \
                 best_x, best_y, improvements, domain, mus = next(self.bo_gen)
+
+        self.best_x = best_x
+        self.best_y = best_y
         # return the best PARAMS
         return best_x, best_y
 
@@ -234,7 +247,7 @@ class IBO(object):
             return mus.ravel(), s2.ravel()
 
 
-    def __sample_from_function__(self, verbose=True):
+    def __sample_from_function__(self, verbose=None):
         """Sample N times from the unknown function and for each time find the
         point that will have the highest expected improvement (find the maxima of the function).
         Verbose signifies if the function should print out the points where it is sampling
@@ -250,50 +263,16 @@ class IBO(object):
         Note - the y-function can EITHER by the actual y-function (for evaluation
         purposes, or an objective function
         (i.e. - RMSE))"""
+        verbose = self.verbose
 
 
         # for plotting the points sampled
         x_sampled_points = []
         y_sampled_points = []
-        best_x = None
-        best_y = None
+        best_x = self.train_points_x[np.argmax(self.train_points_y ),:]
+        best_y =self.train_points_y [np.argmax(self.train_points_y ),:]
 
 
-        # STARTING POINTS
-        if self.train_points_x.shape[1]>1: # Two dimensional
-            # Random starting point
-            try: # see if the format is a np.array
-                start_point = np.array([self.test_domain
-                                        [np.random.choice(len(self.test_domain)),:]])
-            except: # the point is a list
-                start_point = np.array([self.test_domain
-                                        [np.random.choice(len(self.test_domain ))]])
-            #start at random point in the domain
-            best_x = start_point
-
-            try: # in case we are passing the actual function here
-                best_y = self.train_y_func(start_point[0][0] , start_point[0][1])
-                start_y = best_y
-            except: # we are passing the objective function (min RMSE)
-                best_y = self.train_y_func(start_point[0][0],
-                dimensions = 'two', hyperparameter_value_two = start_point[0][1])
-                start_y = best_y
-            # for plotting the points sampled
-
-
-        else: # One dimensional case
-            try: # see if it is a list
-                start_point = np.random.choice(self.test_domain)
-            except:
-                start_point = np.random.choice(list(self.test_domain.ravel()))
-            # start at random point in the domain
-            best_x = start_point
-            best_y = self.train_y_func(start_point)
-            # initial best y value based on start point
-            start_y = self.train_y_func(start_point)
-
-        x_sampled_points.append(start_point)
-        y_sampled_points.append(start_y)
 
         for i in range(self.samples):
             if i == 0:
@@ -313,9 +292,26 @@ class IBO(object):
                 list_of_expected_improvements = self.expected_improvement(
                     mus_post, sigmas_post ,best_y)
 
-                max_improv_x_idx = np.argmax(list_of_expected_improvements)
+                max_improv_x_idx = np.argmax(np.array(
+                    list_of_expected_improvements))
                 #print(max_improv_x_idx,'max_improv_x_idx')
                 max_improv_x = testing_domain[max_improv_x_idx]
+                # don't resample the same point
+                c = 1
+                while max_improv_x in x_sampled_points:
+                    if c == 1:
+                        sorted_points_idx = list(np.argsort(
+                            list_of_expected_improvements))
+                    c+=1
+                    max_improv_x_idx = int(sorted_points_idx[c])
+                    max_improv_x = testing_domain[max_improv_x_idx]
+                    # only wait until we've gon through a third of the list
+                    if c > round(len(list_of_expected_improvements)/3):
+                        max_improv_x_idx = np.argmax(np.array(
+                            list_of_expected_improvements))
+                        #print(max_improv_x_idx,'max_improv_x_idx')
+                        max_improv_x = testing_domain[max_improv_x_idx]
+                        break
 
                 if self.train_points_x.shape[1]==1:
                     max_improv_y = self.train_y_func(max_improv_x)
@@ -331,37 +327,23 @@ class IBO(object):
                 if max_improv_y > best_y: ## use to find out where to search next
                     best_y = max_improv_y
                     best_x = max_improv_x
-                else:
-                    best_x = start_point
-
                 if verbose:
                     print(f"Bayesian Optimization just sampled point = {best_x}")
                     print(f"Best x (Bayesian Optimization) = {best_x},\
                          Best y = {best_y}")
-
                     # append the point to sample
-                    #print(x_sampled_points,'x sampeld points first before')
-
                     x_sampled_points.append(max_improv_x)
-                    #print(x_sampled_points,'x sampeld points first before')
                     y_sampled_points.append(max_improv_y)
-
-                    #print(len(self.train_points_x),'len train points x before')
                     # append our new the newly sampled point to the training data
                     self.train_points_x = np.vstack((self.train_points_x,
                                                      max_improv_x))
-                    #print(len(self.train_points_x),'len train points x after')
-                    #print(self.train_points_x,'train points x after')
                     self.train_points_y = np.vstack((self.train_points_y,
                                                      max_improv_y))
-                    #print(self.train_points_y ,'self.train_points_y ')
 
                     yield x_sampled_points, y_sampled_points, vars_, best_x, best_y, \
                         list_of_expected_improvements, testing_domain, mus
 
                 else:
-
-
                     # append the point to sample
                     x_sampled_points.append(max_improv_x)
                     y_sampled_points.append(max_improv_y)
@@ -375,38 +357,48 @@ class IBO(object):
 
 
             else:
-                # reformat testing domain to include more possible points
 
                 if self.train_points_x.shape[1]==1:
                     testing_domain = np.array([testing_domain]).reshape(-1,1)
-                # else:
-                #     testing_domain = self.test_domain
+                else:
+                    testing_domain = self.test_domain
 
                 mus, vars_, prior, post = self.__test_gaussian_process__(
                         return_sample = True)
 
-                sigmas_post = np.var(post,axis=1)
+                igmas_post  = np.var(post,axis=1)
                 mus_post = np.mean(post,axis=1)
-                #print(sigmas_post , 'sigmas_post ')
-
                 # get the expected values from the posterior distribution
                 list_of_expected_improvements = self.expected_improvement(
                     mus_post, sigmas_post ,best_y)
-                #print(max(mus_post), min(mus_post),'max min mus')
-
                 max_improv_x_idx = np.argmax(list_of_expected_improvements)
                 max_improv_x = testing_domain[max_improv_x_idx]
-                #print(testing_domain, ' testing domain')
-                #print(max_improv_x, 'max_improv_x')
-                #rint(list_of_expected_improvements ,'list_of_expected_improvements ')
-
+                # don't resample the same point
+                c = 1
+                while max_improv_x in x_sampled_points:
+                    if c == 1:
+                        if self.train_points_x .shape[1]==1:
+                            sorted_points_idx = np.argsort(list(np.array(
+                                list_of_expected_improvements)))
+                        else:
+                            sorted_points_idx = np.argsort(list(np.array(
+                                list_of_expected_improvements)),axis=0)
+                    c+=1
+                    max_improv_x_idx = int(sorted_points_idx[c])
+                    max_improv_x = testing_domain[max_improv_x_idx]
+                    # only wait until we've gon through half of the list
+                    if c > round(len(list_of_expected_improvements)/2):
+                        max_improv_x_idx = int(
+                            np.argmax(list_of_expected_improvements))
+                        max_improv_x = testing_domain[max_improv_x_idx]
+                        break
                 if self.train_points_x .shape[1]==1:
-                    #print('ONE DIMENSIONAL')
                     max_improv_y = self.train_y_func(max_improv_x)
                 else: # Two D
                     try: # see if we are passing in the actual function
                         max_improv_y = self.train_y_func(
                             max_improv_x[0], max_improv_x[1])
+
                     except: # we are passing the objective function in
                         max_improv_y = self.train_y_func(
                             max_improv_x[0], dimensions = 'two',
@@ -415,32 +407,22 @@ class IBO(object):
                 if max_improv_y > best_y: ## use to find out where to search next
                     best_y = max_improv_y
                     best_x = max_improv_x
-
-
                 if verbose:
                     print(f"Bayesian Optimization just sampled point = {max_improv_x}")
                     print(f"Best x (Bayesian Optimization) = {best_x}, Best y = {best_y}")
-                    #print(x_sampled_points,'x sampled before')
-                    #print('HEREHEHRHERERH EHRER HERE')
                     # append the point to sample
                     x_sampled_points.append(max_improv_x)
-                    #print(x_sampled_points, 'x sampled after')
                     y_sampled_points.append(max_improv_y)
 
 
                     # append our new the newly sampled point to the training data
                     self.train_points_x = np.vstack((self.train_points_x, max_improv_x))
-                    #print(self.train_points_x,'train points x after')
                     self.train_points_y = np.vstack((self.train_points_y, max_improv_y))
-                    #print(self.train_points_y ,'self.train_points_y  after')
 
                     yield x_sampled_points, y_sampled_points, vars_, best_x, best_y, \
                         list_of_expected_improvements, testing_domain, mus
 
                 else:
-
-                    #sampled_variance.append(sigmas_post[max_improv_x_idx])
-
                     # append the point to sample
                     x_sampled_points.append(max_improv_x)
                     y_sampled_points.append(max_improv_y)
@@ -598,17 +580,26 @@ class IBO(object):
 
 
     def __squarred_kernel__(self, a, b, param=2.0, train=False,
-                            train_noise = 5e-3, vertical_scale=50):
+                            train_noise = 5e-3, vertical_scale=1.5):
         """Calculated the squarred exponential kernel.
         Adds a noise term for the covariance of the training data
         Adjusting the param changes the difference where points will have a positive covariance
         Returns a covaraince Matrix.
         Vertical scale controls the vertical scale of the function"""
+        if self.squarred_length != None:
+            vertical_scale = self.squarred_length
+
         if train == False:
+            # ensure a and b are numpy arrays
+            a = np.array(a)
+            b = np.array(b)
             sqdist = np.sum(a**2,1).reshape(-1,1) + np.sum(b**2,1) - 2*np.dot(a, b.T)
             return vertical_scale*np.exp(-.5 * (1/param) * sqdist)
 
         else:
+            # ensure a and b are numpy arrays
+            a = np.array(a)
+            b = np.array(b)
             noisy_observations = train_noise*np.eye(len(a))
             sqdist = np.sum(a**2,1).reshape(-1,1) + np.sum(b**2,1) - 2*np.dot(a, b.T)
             return vertical_scale*np.exp(-.5 * (1/param) * sqdist) + noisy_observations
