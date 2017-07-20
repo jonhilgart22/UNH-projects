@@ -39,6 +39,7 @@ class IBO(object):
     def fit(self, train_points_x, train_points_y,
             test_domain, train_y_func, y_func_type = 'real',
             samples = 10 , test_points_x = None, test_points_y = None,
+            model_train_points_x = None, model_train_points_y = None,
             covariance_noise = 5e-5, n_posteriors = 30, kernel_params = None,
             model_obj = GradientBoostingRegressor,
             verbose = True):
@@ -61,6 +62,7 @@ class IBO(object):
             picking
         train_y_func - This can either be an objective function or a true function
         kernel_params: dictionary of {'length':value} for squarredkernel
+        model_train_points: the training points for the objective function
         """
 
         try:
@@ -76,7 +78,7 @@ class IBO(object):
 
         # setup the kernel parameters
         if kernel_params != None:
-            self.squarred_length = kernel_params['length']
+            self.squarred_length = kernel_params['rbf_length']
         else:
             self.squarred_length = None
 
@@ -85,13 +87,18 @@ class IBO(object):
         if y_func_type == 'real':
             self.train_y_func = train_y_func
         elif y_func_type == 'objective':
-            if model == None:
+            if model_obj == None:
                 return ' you need to pass in a model (GradientBoostingRegressor)'
 
             # Only if using an objective function, from the 'test' split
             self.test_points_x = test_points_x
             self.test_points_y = test_points_y
-            self.train_y_func = self.hyperparam_choice_function(model = model_obj)
+            self.model_train_points_x  = model_train_points_x
+            self.model_train_points_y = model_train_points_y
+            # model to train and fit
+            self.model = model_obj
+            self.train_y_func = self.hyperparam_choice_function
+
 
 
         # store the testing parameters
@@ -300,19 +307,21 @@ class IBO(object):
                 c = 1
                 while max_improv_x in x_sampled_points:
                     if c == 1:
-                        sorted_points_idx = list(np.argsort(
-                            list_of_expected_improvements))
+                        if self.train_points_x .shape[1]==1:
+                            sorted_points_idx = np.argsort(list(np.array(
+                                list_of_expected_improvements)))
+                        else:
+                            sorted_points_idx = np.argsort(list(np.array(
+                                list_of_expected_improvements)),axis=0)
                     c+=1
                     max_improv_x_idx = int(sorted_points_idx[c])
                     max_improv_x = testing_domain[max_improv_x_idx]
-                    # only wait until we've gon through a third of the list
-                    if c > round(len(list_of_expected_improvements)/3):
-                        max_improv_x_idx = np.argmax(np.array(
-                            list_of_expected_improvements))
-                        #print(max_improv_x_idx,'max_improv_x_idx')
+                    # only wait until we've gon through half of the list
+                    if c > round(len(list_of_expected_improvements)/2):
+                        max_improv_x_idx = int(
+                            np.argmax(list_of_expected_improvements))
                         max_improv_x = testing_domain[max_improv_x_idx]
                         break
-
                 if self.train_points_x.shape[1]==1:
                     max_improv_y = self.train_y_func(max_improv_x)
                 else: # Two D
@@ -323,7 +332,6 @@ class IBO(object):
                         max_improv_y = self.train_y_func(
                             max_improv_x[0], dimensions = 'two',
                             hyperparameter_value_two = max_improv_x[1])
-
                 if max_improv_y > best_y: ## use to find out where to search next
                     best_y = max_improv_y
                     best_x = max_improv_x
@@ -438,34 +446,37 @@ class IBO(object):
 
 
     def hyperparam_choice_function(self, hyperparameter_value,
-                               model = GradientBoostingRegressor,
                                dimensions = 'one', hyperparameter_value_two = None):
         """Returns the negative MSE of the input hyperparameter for the given
          hyperparameter.
         Used with GradientBoostingRegressor estimator currently
         If dimensions = one, then search n_estimators. if dimension equal
         two then search over n_estimators and max_depth"""
-
+        #definethe model
+        model = self.model
+        # define the training points
+        train_points_x = self.model_train_points_x
+        train_points_y = self.model_train_points_y
 
         if self.dimensions == 'one':
             try:
                 m = model(n_estimators= int(hyperparameter_value))
             except:
                  m = model(n_estimators= hyperparameter_value)
-            m.fit(self.train_points_x, self.train_points_y)
+            m.fit(train_points_x, train_points_y)
             pred = m.predict(self.test_points_x )
             n_mse = self.mean_squarred_error(self.test_points_y , pred)
             return n_mse
-        elif dimensions =='two':
+        elif self.dimensions =='two':
             try:
                 m = model(n_estimators = int(hyperparameter_value),
                           max_depth = int(hyperparameter_value_two))
             except:
                 m = model(n_estimators = hyperparameter_value,
                           max_depth = hyperparameter_value_two)
-            m.fit(self.train_points_x, self.train_points_y)
+            m.fit(train_points_x, train_points_y)
             pred = m.predict(self.test_points_x)
-            n_mse = mean_squarred_error(self.test_points_y , pred)
+            n_mse = self.mean_squarred_error(self.test_points_y , pred)
             return n_mse
         else:
             return ' We do not support this number of dimensions yet'
