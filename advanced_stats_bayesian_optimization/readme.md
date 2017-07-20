@@ -12,7 +12,12 @@ the Bayesian_Optimization package
 
 <h3 style="text-align: center;" markdown="1"> Below, you can view some of the results </h3>
 
+### One dimensional function
+![Alt text](images/1d_function.png?raw=true)
+
+
 ![Alt text](images/1d_search_rand_grid_ibo.png?raw=true)
+- Comparison between my implementation, random grid search, and grid search over a true one-dimensional function. 
 
 
 # Resources
