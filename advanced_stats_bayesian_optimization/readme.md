@@ -10,7 +10,8 @@ Grid Search and Random Grid Search over one and two dimensions.
 the Bayesian_Optimization package
 -Finally under python_scripts, you can view the *Intelligent Bayesian Optimization* class which contains a .fit(), .predict(), and .maximize() methods.
 
-<>Below, you can view some of the results<>
+<>Blow, you can view some of the results<>
+<h3 style="text-align: center;" markdown="1">TBelow, you can view some of the results< heading.</h3>
 
 ![Alt text](images/1d_search_rand_grid_ibo.png?raw=true)
 
