@@ -1,3 +1,4 @@
+# **Intelligent Bayesian Optimization (IBO)**
 This is a one-dimensional using a true function, two-dimensional using a true function, and two-dimensional using an objective function implementation of bayesian optimization.
 
 - Start with the notebook **Overview_of_Intelligent_Bayesian_Optimization**, which explains
@@ -8,7 +9,7 @@ Grid Search and Random Grid Search over one and two dimensions.
 - Next, within the notebook folder the notebook
 **Compare_IBO_to_Implementation** shows how my implementation performs compared to
 the Bayesian_Optimization package
--Finally under python_scripts, you can view the *Intelligent Bayesian Optimization* class which contains a .fit(), .predict(), and .maximize() methods.
+- Finally under python_scripts, you can view the *Intelligent Bayesian Optimization* class which contains a .fit(), .predict(), and .maximize() methods.
 
 <h3 style="text-align: center;" markdown="1"> Below, you can view some of the results </h3>
 
