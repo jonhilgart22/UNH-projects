@@ -487,11 +487,12 @@ class IBO(object):
         """MSE of actual and predicted value.
         Negative turn the MSE negative to allow for
         maximization instead of minimization"""
-        def root_mean_squared_error(actual, predicted, negative = True):
         if negative == True:
-            return - np.sqrt(sum((actual - predicted)**2)/len(actual))
+            return - np.sqrt(sum((actual.reshape(-1,1) - predicted.reshape(-1,1)**2))
+                                 /len(actual))
         else:
-            return np.sqrt(sum((actual - predicted)**2)/len(actual))
+            return np.sqrt(sum((actual.reshape(-1,1) - predicted.reshape(-1,1)**2))
+                                 /len(actual))
 
     def expected_improvement(self, mean_x, sigma_squared_x,
                              y_val_for_best_hyperparameters, normal_dist=None,
