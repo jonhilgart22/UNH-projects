@@ -4,6 +4,8 @@ Deep_Learning
 Maximize revenue of NYC taxicabs with deep reinforcement learning (DQN) and Actor Critic (AC) algorithms.
 This project was inspired by http://cs229.stanford.edu/proj2014/Jingshu%20Wang,%20Benjamin%20Lampert,%20Improving%20Taxi%20Revenue%20With%20Reinforcement%20Learning.pdf
 
+**Start**: Notebooks -> *NYC_Maximize_Taxi_Cab_Fare_With_Reinforcement_Learning*. This is an overview of the project.
+
 Project Organization
 ------------
 
