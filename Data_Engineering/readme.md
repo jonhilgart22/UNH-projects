@@ -3,7 +3,7 @@
 ##### What if you could know how full the next BART train would be before it arrived?
   - The overarching idea was to combine historical weather and BART ridership information, alongside live BART train arrival, BART train size, and live weather information to generate near real-time capacity predictions. This project ended up with a daily prediction for each station, but future versions can decrease this time latency.
 
-- **For a project overview** start with the notebook Daily_Bart_Ridership_Predictions.ipynb. This gives an overview of the project including the architecture.
+- **For a project overview**, start with the notebook Daily_Bart_Ridership_Predictions.ipynb. This gives an overview of the project including the architecture.
 
 - The airflow scripts folder contains the airflow scripts to automate the batch jobs for data ingestion, data normalization, and bart ridership predictions.
 
