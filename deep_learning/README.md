@@ -8,6 +8,10 @@ This project was inspired by http://cs229.stanford.edu/proj2014/Jingshu%20Wang,%
 
 **Results**: Found that an Actor-Critic deep reinforcement learning implementation could earn on average **10-12%** more per day than a naive implementation. You can view the search space of a naive implementation against this actor-critic implementation below.
 
+# Path taken by naive (random) algorithm
+!
+
+# Path taken by actor-critic algorithm
 ![Alt text](./figures/actor_critic_viz_350k.png)
 
 Project Organization
