@@ -39,6 +39,11 @@ the Bayesian_Optimization package
 ![Alt text](images/Compare_IBO_to_Implementation_2d.png?raw=true)
 - However, it must be noted that my implementation took ~ 124 seconds for 10 steps when searching ov ~6k parameters while the Bayesian_Optimization package took ~27 seconds.
 
+## Maximize the marginal log-likehood of the hyperparameter for the RBF kernel
+![](images/hill_clib.png?raw=true)
+- In order to maximize performance of Bayesian Optimization, it is necessary to maximize the log-likehood for the kernel given the training data.
+${\displaystyle \log p(f(x)|\theta ,x)=-{\frac {1}{2}}f(x)^{T}K(\theta ,x,x')^{-1}f(x)-{\frac {1}{2}}\log \det(K(\theta ,x,x'))-{\frac {|x|}{2}}\log 2\pi }$
+
 # Resources
 - Kevin Murphy: Machine Learning a Probabilistic Perspective
 - Gaussian Processes : http://www.gaussianprocess.org/
