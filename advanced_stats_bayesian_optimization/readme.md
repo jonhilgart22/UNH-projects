@@ -1,4 +1,4 @@
-pandoc -s MANUAL.txt -o example4.tex
+
 
 # **Intelligent Bayesian Optimization (IBO)**
 This is a one-dimensional using a true function, two-dimensional using a true function, and two-dimensional using an objective function implementation of bayesian optimization.
@@ -44,7 +44,7 @@ the Bayesian_Optimization package
 ## Maximize the marginal log-likehood of the hyperparameter for the RBF kernel
 ![ALt Text](images/hill_climb.png?raw=true)
 - In order to maximize performance of Bayesian Optimization, it is necessary to maximize the log-likehood for the kernel given the training data.
-${\displaystyle \log p(f(x)|\theta ,x)=-{\frac {1}{2}}f(x)^{T}K(\theta ,x,x')^{-1}f(x)-{\frac {1}{2}}\log \det(K(\theta ,x,x'))-{\frac {|x|}{2}}\log 2\pi }$
+![](images/marginal_likelihood.png?raw=true)
 
 # Resources
 - Kevin Murphy: Machine Learning a Probabilistic Perspective
