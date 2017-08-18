@@ -1,3 +1,23 @@
+<style TYPE="text/css">
+code.has-jax {font: inherit; font-size: 100%; background: inherit; border: inherit;}
+</style>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [['$','$'], ['\\(','\\)']],
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre'] // removed 'code' entry
+    }
+});
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i = 0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';
+    }
+});
+</script>
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+
 # **Intelligent Bayesian Optimization (IBO)**
 This is a one-dimensional using a true function, two-dimensional using a true function, and two-dimensional using an objective function implementation of bayesian optimization.
 
@@ -40,7 +60,7 @@ the Bayesian_Optimization package
 - However, it must be noted that my implementation took ~ 124 seconds for 10 steps when searching ov ~6k parameters while the Bayesian_Optimization package took ~27 seconds.
 
 ## Maximize the marginal log-likehood of the hyperparameter for the RBF kernel
-![](images/hill_clib.png?raw=true)
+![ALt Text](images/hill_climb.png?raw=true)
 - In order to maximize performance of Bayesian Optimization, it is necessary to maximize the log-likehood for the kernel given the training data.
 ${\displaystyle \log p(f(x)|\theta ,x)=-{\frac {1}{2}}f(x)^{T}K(\theta ,x,x')^{-1}f(x)-{\frac {1}{2}}\log \det(K(\theta ,x,x'))-{\frac {|x|}{2}}\log 2\pi }$
 
