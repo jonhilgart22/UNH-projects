@@ -1,3 +1,5 @@
+
+
 # **Intelligent Bayesian Optimization (IBO)**
 This is a one-dimensional using a true function, two-dimensional using a true function, and two-dimensional using an objective function implementation of bayesian optimization.
 
@@ -38,6 +40,11 @@ the Bayesian_Optimization package
 ##### Results of optimization over two-dimensional real function between my implementation and the Bayesian_Optimization package
 ![Alt text](images/Compare_IBO_to_Implementation_2d.png?raw=true)
 - However, it must be noted that my implementation took ~ 124 seconds for 10 steps when searching ov ~6k parameters while the Bayesian_Optimization package took ~27 seconds.
+
+## Maximize the marginal log-likehood of the hyperparameter for the RBF kernel
+![ALt Text](images/hill_climb.png?raw=true)
+- In order to maximize performance of Bayesian Optimization, it is necessary to maximize the log-likehood for the kernel given the training data.
+![](images/marginal_likelihood.png?raw=true)
 
 # Resources
 - Kevin Murphy: Machine Learning a Probabilistic Perspective
