@@ -9,6 +9,7 @@ Grid Search and Random Grid Search over one and two dimensions.
 - Next, within the notebook folder the notebook
 **Compare_IBO_to_Implementation** shows how my implementation performs compared to
 the Bayesian_Optimization package
+- After that, within the notebook folder the notebook **Marginal_Likelihood_Hill_Climbing** shows how to maximize the hyperparameters of the RBF kernel for Gaussian Processes using hill climbing. 
 - Finally under python_scripts, you can view the *Intelligent Bayesian Optimization* class which contains a .fit(), .predict(), and .maximize() methods.
 
 <h3 style="text-align: center;" markdown="1"> Below, you can view some of the results </h3>
