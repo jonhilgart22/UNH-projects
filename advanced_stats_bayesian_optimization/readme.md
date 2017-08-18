@@ -44,6 +44,7 @@ the Bayesian_Optimization package
 ## Maximize the marginal log-likehood of the hyperparameter for the RBF kernel
 ![ALt Text](images/hill_climb.png?raw=true)
 - In order to maximize performance of Bayesian Optimization, it is necessary to maximize the log-likehood for the kernel given the training data.
+- Below, is the marginal log-likehood equation for the RBF kernel. To maximize this, you need to take the gradient with respect to the parameters theta, and then walk up following the gradient to find the maximum. 
 ![](images/marginal_likelihood.png?raw=true)
 
 # Resources
